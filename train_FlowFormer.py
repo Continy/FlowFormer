@@ -7,7 +7,7 @@ import os
 import cv2
 import time
 import numpy as np
-import matplotlib.pyplot as plt
+
 from pathlib import Path
 
 import torch
@@ -172,7 +172,7 @@ if __name__ == '__main__':
     elif args.stage == 'kitti':
         from configs.kitti import get_cfg
     elif args.stage == 'tartanair':
-        from configs.tartanair import get_cfg
+        from configs.tartanair_small import get_cfg
 
     cfg = get_cfg()
     cfg.update(vars(args))
