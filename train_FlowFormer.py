@@ -28,7 +28,7 @@ from loguru import logger as loguru_logger
 from core.utils.logger import Logger
 
 # from core.FlowFormer import FlowFormer
-from core.FlowFormer import build_flowformer
+from core.FlowFormer import build_flowformer, build_gaussian
 
 try:
     from torch.cuda.amp import GradScaler
@@ -61,22 +61,31 @@ def count_parameters(model):
 
 def train(cfg):
     model = nn.DataParallel(build_flowformer(cfg))
+    g_model = nn.DataParallel(build_gaussian(cfg))
     loguru_logger.info("Parameter Count: %d" % count_parameters(model))
-
+    loguru_logger.info("MixtureGaussian Parameter Count: %d" %
+                       count_parameters(g_model))
     if cfg.restore_ckpt is not None:
         print("[Loading ckpt from {}]".format(cfg.restore_ckpt))
         model.load_state_dict(torch.load(cfg.restore_ckpt), strict=True)
 
     model.cuda()
     model.train()
+    #freeze the FlowFormer
+    for param in model.parameters():
+        param.requires_grad = False
+
+    g_model.cuda()
+    g_model.train()
 
     train_loader = datasets.fetch_dataloader(cfg)
     optimizer, scheduler = fetch_optimizer(model, cfg.trainer)
-
+    g_optimizer, g_scheduler = fetch_optimizer(g_model, cfg.trainer)
     total_steps = 0
     scaler = GradScaler(enabled=cfg.mixed_precision)
+    g_scaler = GradScaler(enabled=cfg.mixed_precision)
     logger = Logger(model, scheduler, cfg)
-
+    g_logger = Logger(g_model, g_scheduler, cfg)
     add_noise = False
 
     should_keep_training = True
@@ -96,20 +105,29 @@ def train(cfg):
                               0.0, 255.0)
 
             output = {}
-            flow_predictions = model(image1, image2, output)
-            loss, metrics = sequence_loss(flow_predictions, flow, valid, cfg)
-            scaler.scale(loss).backward()
-            scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                           cfg.trainer.clip)
+            flow_predictions, net = model(image1, image2, output)
+            gaussian = g_model(net)
+            loss, metrics = sequence_loss(flow_predictions, flow, valid, cfg,
+                                          gaussian)
+            # scaler.scale(loss).backward(retain_graph=True)
+            # scaler.unscale_(optimizer)
+            # torch.nn.utils.clip_grad_norm_(model.parameters(),
+            #                                cfg.trainer.clip)
 
-            scaler.step(optimizer)
-            scheduler.step()
-            scaler.update()
-
+            # scaler.step(optimizer)
+            # scheduler.step()
+            # scaler.update()
+            if total_steps % 5 == 0:
+                g_scaler.scale(loss).backward(retain_graph=True)
+                g_scaler.unscale_(g_optimizer)
+                torch.nn.utils.clip_grad_norm_(g_model.parameters(),
+                                               cfg.trainer.clip)
+                g_scaler.step(g_optimizer)
+                g_scheduler.step()
+                g_scaler.update()
             metrics.update(output)
             logger.push(metrics)
-
+            print("Iter: %d, Loss: %.4f" % (total_steps, loss.item()))
             ### change evaluate to functions
 
             if total_steps % cfg.val_freq == cfg.val_freq - 1:
@@ -142,7 +160,7 @@ def train(cfg):
     PATH = cfg.log_dir + '/final'
     torch.save(model.state_dict(), PATH)
 
-    PATH = f'checkpoints/{cfg.stage}.pth'
+    PATH = f'checkpoints/{cfg.stage}/{cfg.weight}.pth'
     torch.save(model.state_dict(), PATH)
 
     return PATH

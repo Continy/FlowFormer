@@ -6,7 +6,7 @@ RUN python3.9 -m pip install --upgrade pip
 RUN pip3 install --upgrade setuptools
 RUN pip3 --no-cache-dir install lit
 RUN pip3 --no-cache-dir install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-RUN pip3 --no-cache-dir install scipy tensorboard opencv-python opencv-python-headless
+RUN pip3 --no-cache-dir install matplotlib scipy tensorboard opencv-python opencv-python-headless
 RUN pip3 --no-cache-dir install yacs loguru einops timm==0.4.12 imageio gdown
 
 

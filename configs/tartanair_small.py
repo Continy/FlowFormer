@@ -14,8 +14,9 @@ _CN.add_noise = True
 _CN.critical_params = []
 _CN.folderlength = 1
 _CN.transformer = 'latentcostformer'
-#_CN.restore_ckpt = 'checkpoints/flowformer-small/things.pth'
-_CN.restore_ckpt = None
+_CN.weight = 'mixturegaussian'
+_CN.restore_ckpt = 'checkpoints/final.pth'
+#_CN.restore_ckpt = None
 # latentcostformer
 _CN.latentcostformer = CN()
 _CN.latentcostformer.pe = 'linear'
@@ -54,7 +55,11 @@ _CN.latentcostformer.critical_params = [
     'cost_heads_num', 'vert_c_dim', 'cnet', 'pretrain', 'add_flow_token',
     'encoder_depth', 'gma', 'cost_encoder_res'
 ]
-
+#weight
+_CN.mixturegaussian = CN()
+_CN.mixturegaussian.hidden_size = 256
+_CN.mixturegaussian.mixture_num = 1
+_CN.mixturegaussian.para_num = 1
 ### TRAINER
 _CN.trainer = CN()
 _CN.trainer.scheduler = 'OneCycleLR'
@@ -62,7 +67,7 @@ _CN.trainer.optimizer = 'adamw'
 _CN.trainer.canonical_lr = 12.5e-5
 _CN.trainer.adamw_decay = 1e-5
 _CN.trainer.clip = 1.0
-_CN.trainer.num_steps = 100
+_CN.trainer.num_steps = 5000
 _CN.trainer.epsilon = 1e-8
 _CN.trainer.anneal_strategy = 'linear'
 
