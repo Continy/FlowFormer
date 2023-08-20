@@ -108,15 +108,7 @@ def train(cfg):
             gaussian = g_model(net)
             loss, metrics = sequence_loss(flow_predictions, flow, valid, cfg,
                                           gaussian)
-            # scaler.scale(loss).backward(retain_graph=True)
-            # scaler.unscale_(optimizer)
-            # torch.nn.utils.clip_grad_norm_(model.parameters(),
-            #                                cfg.trainer.clip)
 
-            # scaler.step(optimizer)
-            # scheduler.step()
-            # scaler.update()
-            #if total_steps % 1 == 0:
             scaler.scale(loss).backward(retain_graph=True)
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(),
@@ -124,13 +116,13 @@ def train(cfg):
             scaler.step(optimizer)
             scheduler.step()
             scaler.update()
-            # g_scaler.scale(loss).backward(retain_graph=True)
-            # g_scaler.unscale_(g_optimizer)
-            # torch.nn.utils.clip_grad_norm_(g_model.parameters(),
-            #                                cfg.trainer.clip)
-            # g_scaler.step(g_optimizer)
-            # g_scheduler.step()
-            # g_scaler.update()
+            g_scaler.scale(loss).backward(retain_graph=True)
+            g_scaler.unscale_(g_optimizer)
+            torch.nn.utils.clip_grad_norm_(g_model.parameters(),
+                                           cfg.trainer.clip)
+            g_scaler.step(g_optimizer)
+            g_scheduler.step()
+            g_scaler.update()
 
             metrics.update(output)
             logger.push(metrics)

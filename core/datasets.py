@@ -324,7 +324,9 @@ def fetch_dataloader(args, TRAIN_DS='C+T+K+S+H'):
             'max_scale': 0.5,
             'do_flip': False
         }
-        train_dataset = TartanAir(aug_params, folderlength=args.folderlength)
+        train_dataset = TartanAir(aug_params,
+                                  folderlength=args.folderlength,
+                                  root=args.root)
     train_loader = data.DataLoader(train_dataset,
                                    batch_size=args.batch_size,
                                    pin_memory=False,
