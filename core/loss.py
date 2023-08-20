@@ -30,32 +30,38 @@ def sequence_loss(flow_preds, flow_gt, valid, cfg, gaussian):
     dist = MixtureSameFamily(torch.distributions.Categorical(probs=weights),
                              dist)
 
-    lable = torch.linspace(-5, 5, n_predictions).to(weights.device)
-
-    # for i in range(1):
-    #     #将lable[i]变成(1,60,80,1)
-    #     target = lable[i].expand_as(torch.zeros(1, 60, 80, 1))
-    #     i_weight = dist.log_prob(target)
-    #     i_weight = torch.exp(i_weight)
-    #     i_weight = i_weight.unsqueeze(0)
-    #     i_weight = nn.Upsample(scale_factor=8,
-    #                            mode='bilinear',
-    #                            align_corners=True)(i_weight)
-    #     i_weight = i_weight.squeeze(0)
-    #     i_loss = (flow_preds[i] - flow_gt).abs()
-    #     #归一化i_weight
-    #     i_weight = i_weight / torch.sum(i_weight)
-    #     i_weight += 1e-6
-    #     flow_loss += i_weight * (valid[:, None] * i_loss)
-    # flow_loss = flow_loss.mean()
-
-    # var_loss = flow_loss / (2 * torch.exp(2 * vars.mean())) + vars.mean()
-
-    # old version
+    lable = torch.linspace(-1, 1, n_predictions).to(weights.device)
+    i_weights = torch.zeros(n_predictions, cfg.batch_size, 480,
+                            640).to(weights.device)
     for i in range(n_predictions):
-        i_weight = gamma**(n_predictions - i - 1)
+        #将lable[i]变成(1,60,80,1)
+        target = lable[i].expand_as(torch.zeros(1, 60, 80, 1))
+        i_weight = dist.log_prob(target)
+        i_weight = torch.exp(i_weight)
+        i_weight = i_weight.unsqueeze(0)
+        i_weight = nn.Upsample(scale_factor=8,
+                               mode='bilinear',
+                               align_corners=True)(i_weight)
+        i_weight = i_weight.squeeze(0)
+        i_weights[i] = i_weight
+
+    i_weights += 1e-6
+    i_weights = i_weights / i_weights.sum(dim=0, keepdim=True)
+    for i in range(n_predictions):
         i_loss = (flow_preds[i] - flow_gt).abs()
-        flow_loss += i_weight * (valid[:, None] * i_loss).mean()
+
+        w = i_weights[i].unsqueeze(1)
+
+        flow_loss += (w * (valid[:, None] * i_loss))
+    flow_loss = flow_loss.mean()
+
+    var_loss = flow_loss / (2 * torch.exp(2 * vars.mean())) + vars.mean()
+
+    # # old version
+    # for i in range(n_predictions):
+    #     i_weight = gamma**(n_predictions - i - 1)
+    #     i_loss = (flow_preds[i] - flow_gt).abs()
+    #     flow_loss += i_weight * (valid[:, None] * i_loss).mean()
 
     epe = torch.sum((flow_preds[-1] - flow_gt)**2, dim=1).sqrt()
     epe = epe.view(-1)[valid.view(-1)]
@@ -74,4 +80,4 @@ def sequence_loss(flow_preds, flow_gt, valid, cfg, gaussian):
         e = epe[flow_gt_length < t]
         metrics.update({f"{t}-th-5px": (e < 5).float().mean().item()})
 
-    return flow_loss, metrics
+    return var_loss, metrics

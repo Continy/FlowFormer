@@ -72,8 +72,8 @@ def train(cfg):
     model.cuda()
     model.train()
     #freeze the FlowFormer
-    for param in model.parameters():
-        param.requires_grad = False
+    # for param in model.parameters():
+    #     param.requires_grad = False
 
     g_model.cuda()
     g_model.train()
@@ -84,15 +84,14 @@ def train(cfg):
     total_steps = 0
     scaler = GradScaler(enabled=cfg.mixed_precision)
     g_scaler = GradScaler(enabled=cfg.mixed_precision)
-    logger = Logger(model, scheduler, cfg)
-    g_logger = Logger(g_model, g_scheduler, cfg)
-    add_noise = False
+    logger = Logger(g_model, g_scheduler, cfg)
 
     should_keep_training = True
     while should_keep_training:
 
         for i_batch, data_blob in enumerate(train_loader):
             optimizer.zero_grad()
+            g_optimizer.zero_grad()
             image1, image2, flow, valid = [x.cuda() for x in data_blob]
 
             if cfg.add_noise:
@@ -117,14 +116,22 @@ def train(cfg):
             # scaler.step(optimizer)
             # scheduler.step()
             # scaler.update()
-            if total_steps % 5 == 0:
-                g_scaler.scale(loss).backward(retain_graph=True)
-                g_scaler.unscale_(g_optimizer)
-                torch.nn.utils.clip_grad_norm_(g_model.parameters(),
-                                               cfg.trainer.clip)
-                g_scaler.step(g_optimizer)
-                g_scheduler.step()
-                g_scaler.update()
+            #if total_steps % 1 == 0:
+            scaler.scale(loss).backward(retain_graph=True)
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(),
+                                           cfg.trainer.clip)
+            scaler.step(optimizer)
+            scheduler.step()
+            scaler.update()
+            # g_scaler.scale(loss).backward(retain_graph=True)
+            # g_scaler.unscale_(g_optimizer)
+            # torch.nn.utils.clip_grad_norm_(g_model.parameters(),
+            #                                cfg.trainer.clip)
+            # g_scaler.step(g_optimizer)
+            # g_scheduler.step()
+            # g_scaler.update()
+
             metrics.update(output)
             logger.push(metrics)
             print("Iter: %d, Loss: %.4f" % (total_steps, loss.item()))
