@@ -122,6 +122,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', help='load model')
     parser.add_argument('--eval', help='eval benchmark')
     parser.add_argument('--small', action='store_true', help='use small model')
+    parser.add_argument('--datadir', help='dataset dir')
     args = parser.parse_args()
     cfg = get_tartanair_cfg()
     cfg.latentcostformer.decoder_depth = 32
@@ -129,8 +130,10 @@ if __name__ == '__main__':
     result_path = 'results/' + args.eval + '/'
     if not os.path.exists(result_path):
         os.makedirs(result_path)
-    img_path = 'datasets/KITTI/image_left/'
-    img_path = 'datasets/abandonedfactory/Easy/P001/image_left/'
+    if args.datadir is not None:
+        img_path = 'datasets/' + args.datadir
+    else:
+        img_path = 'datasets/abandonedfactory/Easy/P001/image_left/'
     pattern = os.path.join(img_path, '*_left.png')
     filelist = glob.glob(pattern)
     length = len(filelist)
