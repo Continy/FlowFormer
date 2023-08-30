@@ -42,7 +42,9 @@ pip install yacs loguru einops timm==0.4.12 imageio
 
 ## Quick Test
 
-See [Original Project Page](https://drinkingcoder.github.io/publication/flowformer/) if you need furthur evaluation and training.
+See [Original Project Page](https://drinkingcoder.github.io/publication/flowformer/) if you need further evaluation and training.
+
+`test.py` provides a quick way to test by simply providing a trained model and a set of images to obtain the optical flow.
 
 Specify the location of the image set and the storage location of the optical flow results in advance in the command:
 
@@ -50,9 +52,9 @@ Specify the location of the image set and the storage location of the optical fl
 python test.py --eval tartanair/small/things --datadir YourData
 ```
 
-The above command indicates that the optical flows will be stored in `results/tartanair/small/things`, and your picture set in `datasets/YourData`.
+The above command indicates that the optical flow will be stored in `results/tartanair/small/things`, and your image set in `datasets/YourData`.
 
-You can specify the default datadir in test.py ahead of time to omit the length of the commands.
+You can specify the default datadir in `test.py` ahead of time to omit the length of the commands.
 
 The default image sequence format is:
 
