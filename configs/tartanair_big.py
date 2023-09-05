@@ -9,12 +9,15 @@ _CN.max_flow = 400
 _CN.batch_size = 6
 _CN.sum_freq = 100
 _CN.val_freq = 5000000
+_CN.autosave_freq = 1500
 _CN.image_size = [480, 640]
 _CN.add_noise = True
 _CN.critical_params = []
 _CN.folderlength = 1
 _CN.transformer = 'latentcostformer'
-_CN.restore_ckpt = 'checkpoints/kitti.pth'
+_CN.weight = 'mixturegaussian'
+_CN.restore_ckpt = 'checkpoints/things.pth'
+_CN.root = '/project/learningvo/tartanair_v1_5/abandonedfactory/Data/'
 
 # latentcostformer
 _CN.latentcostformer = CN()
@@ -54,7 +57,11 @@ _CN.latentcostformer.critical_params = [
     'cost_heads_num', 'vert_c_dim', 'cnet', 'pretrain', 'add_flow_token',
     'encoder_depth', 'gma', 'cost_encoder_res'
 ]
-
+#weight
+_CN.mixturegaussian = CN()
+_CN.mixturegaussian.hidden_size = 256
+_CN.mixturegaussian.mixture_num = 1
+_CN.mixturegaussian.para_num = 1
 ### TRAINER
 _CN.trainer = CN()
 _CN.trainer.scheduler = 'OneCycleLR'
@@ -62,7 +69,7 @@ _CN.trainer.optimizer = 'adamw'
 _CN.trainer.canonical_lr = 12.5e-5
 _CN.trainer.adamw_decay = 1e-5
 _CN.trainer.clip = 1.0
-_CN.trainer.num_steps = 1200
+_CN.trainer.num_steps = 120000
 _CN.trainer.epsilon = 1e-8
 _CN.trainer.anneal_strategy = 'linear'
 

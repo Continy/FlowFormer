@@ -71,18 +71,19 @@ def train(cfg):
 
     model.cuda()
     model.train()
+
     #freeze the FlowFormer
-    # for param in model.parameters():
-    #     param.requires_grad = False
+    for param in model.parameters():
+        param.requires_grad = False
 
     g_model.cuda()
     g_model.train()
 
     train_loader = datasets.fetch_dataloader(cfg)
-    optimizer, scheduler = fetch_optimizer(model, cfg.trainer)
+
     g_optimizer, g_scheduler = fetch_optimizer(g_model, cfg.trainer)
     total_steps = 0
-    scaler = GradScaler(enabled=cfg.mixed_precision)
+
     g_scaler = GradScaler(enabled=cfg.mixed_precision)
     logger = Logger(g_model, g_scheduler, cfg)
 
@@ -90,7 +91,7 @@ def train(cfg):
     while should_keep_training:
 
         for i_batch, data_blob in enumerate(train_loader):
-            optimizer.zero_grad()
+
             g_optimizer.zero_grad()
             image1, image2, flow, valid = [x.cuda() for x in data_blob]
 
@@ -109,13 +110,6 @@ def train(cfg):
             loss, metrics = sequence_loss(flow_predictions, flow, valid, cfg,
                                           gaussian)
 
-            scaler.scale(loss).backward(retain_graph=True)
-            scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                           cfg.trainer.clip)
-            scaler.step(optimizer)
-            scheduler.step()
-            scaler.update()
             g_scaler.scale(loss).backward(retain_graph=True)
             g_scaler.unscale_(g_optimizer)
             torch.nn.utils.clip_grad_norm_(g_model.parameters(),
@@ -154,7 +148,10 @@ def train(cfg):
             if total_steps > cfg.trainer.num_steps:
                 should_keep_training = False
                 break
-
+            if cfg.autosave_freq and total_steps % cfg.autosave_freq == 0:
+                PATH = '%s/%d_%s.pth' % (cfg.log_dir, total_steps + 1,
+                                         cfg.name)
+                torch.save(model.state_dict(), PATH)
     logger.close()
     PATH = cfg.log_dir + '/final'
     torch.save(model.state_dict(), PATH)

@@ -114,7 +114,7 @@ def process_image(i, filelist, model, result_path):
     flow_img = flow_viz.flow_to_image(flow)
     image = Image.fromarray(flow_img)
     image.save(result_path + str(i).zfill(6) + '.png')
-    print('已保存：{}/{}'.format(i + 1, length))
+    print('Saved：{}/{}'.format(i + 1, length))
 
 
 if __name__ == '__main__':
@@ -134,7 +134,7 @@ if __name__ == '__main__':
         img_path = 'datasets/' + args.datadir
     else:
         img_path = 'datasets/abandonedfactory/Easy/P001/image_left/'
-    pattern = os.path.join(img_path, '*_left.png')
+    pattern = os.path.join(img_path, '.png')
     filelist = glob.glob(pattern)
     length = len(filelist)
     print(length)

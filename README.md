@@ -31,7 +31,15 @@ Change the path in `tartanair_eval.py` if you want to switch the model.
 
 ```
 
-## Requirements
+## Installation
+
+### Setting up the environment with docker
+
+You can obtain pre-built Docker images from [Docker Hub](https://hub.docker.com/repository/docker/zihaozhang/flowformer) ,or find the Dockerfile in this repository.
+
+### Running without docker
+
+You can also install the dependencies manually.
 
 ```shell
 conda create --name flowformer
@@ -42,7 +50,7 @@ pip install yacs loguru einops timm==0.4.12 imageio
 
 ## Quick Test
 
-See [Original Project Page](https://drinkingcoder.github.io/publication/flowformer/) if you need further evaluation and training.
+See [Original Project](https://drinkingcoder.github.io/publication/flowformer/) if you need further evaluation and training.
 
 `test.py` provides a quick way to test by simply providing a trained model and a set of images to obtain the optical flow.
 
@@ -68,10 +76,6 @@ The default image sequence format is:
         .
     ├── 001000.png
 ```
-
-## License
-
-FlowFormer is released under the Apache License
 
 ## Citation
 

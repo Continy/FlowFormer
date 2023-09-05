@@ -16,7 +16,8 @@ _CN.folderlength = 1
 _CN.transformer = 'latentcostformer'
 _CN.weight = 'mixturegaussian'
 _CN.restore_ckpt = 'checkpoints/final.pth'
-_CN.root = '/project/learningvo/tartanair_v1_5/abandonedfactory/Data/'
+#_CN.root = '/project/learningvo/tartanair_v1_5/abandonedfactory/Data/'
+_CN.root = None
 #_CN.restore_ckpt = None
 # latentcostformer
 _CN.latentcostformer = CN()
