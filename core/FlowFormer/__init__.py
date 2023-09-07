@@ -15,5 +15,5 @@ def build_flowformer(cfg):
 def build_gaussian(cfg):
     weight = cfg.weight
     if weight == 'mixturegaussian':
-        from .LatentCostFormer.Gaussian import MixtureGaussianConv
+        from gaussian.FlowNetS import MixtureGaussianConv
     return MixtureGaussianConv(cfg[weight])

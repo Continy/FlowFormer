@@ -49,9 +49,9 @@ def i_conv(batchNorm,
                       bias=bias), )
 
 
-def predict_flow(in_planes):
+def predict(in_planes, mixture_num):
     return nn.Conv2d(in_planes,
-                     2,
+                     mixture_num * 2,
                      kernel_size=3,
                      stride=1,
                      padding=1,

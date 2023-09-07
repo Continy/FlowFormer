@@ -15,7 +15,9 @@ _CN.critical_params = []
 
 _CN.transformer = 'latentcostformer'
 _CN.model = 'checkpoints/final.pth'
-
+_CN.weight = 'mixturegaussian'
+_CN.autosave_freq = 1500
+_CN.g_model = 'checkpoints/1501_tartanair.pth'
 # latentcostformer
 _CN.latentcostformer = CN()
 _CN.latentcostformer.pe = 'linear'
@@ -49,11 +51,14 @@ _CN.latentcostformer.use_mlp = False
 _CN.latentcostformer.vertical_conv = False
 
 # decoder
-_CN.latentcostformer.decoder_depth = 32
+_CN.latentcostformer.decoder_depth = 12
 _CN.latentcostformer.critical_params = [
     'cost_heads_num', 'vert_c_dim', 'cnet', 'pretrain', 'add_flow_token',
     'encoder_depth', 'gma', 'cost_encoder_res'
 ]
+#weight
+_CN.mixturegaussian = CN()
+_CN.mixturegaussian.mixture_num = 3
 
 ### TRAINER
 _CN.trainer = CN()

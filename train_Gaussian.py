@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 import sys
-# sys.path.append('core')
+
+sys.path.append('core')
 
 import argparse
 import os
@@ -17,7 +18,6 @@ import torch.nn.functional as F
 
 from torch.utils.data import DataLoader
 from core import optimizer
-import evaluate_FlowFormer as evaluate
 import core.datasets as datasets
 from core.loss import sequence_loss
 from core.optimizer import fetch_optimizer
@@ -105,12 +105,15 @@ def train(cfg):
                               0.0, 255.0)
 
             output = {}
-            flow_predictions, net = model(image1, image2, output)
-            gaussian = g_model(net)
+            flow_predictions = model(image1, image2, output)
+            # flow_predictions(12)-->mixturegaussian(12)
+            # mixturegaussian(12)-->variance(1)-->var_map(1)
+            flow_all = torch.cat(flow_predictions, dim=1)
+            vars = g_model(flow_all)
             loss, metrics = sequence_loss(flow_predictions, flow, valid, cfg,
-                                          gaussian)
+                                          vars)
 
-            g_scaler.scale(loss).backward(retain_graph=True)
+            g_scaler.scale(loss).backward()
             g_scaler.unscale_(g_optimizer)
             torch.nn.utils.clip_grad_norm_(g_model.parameters(),
                                            cfg.trainer.clip)
@@ -121,27 +124,6 @@ def train(cfg):
             metrics.update(output)
             logger.push(metrics)
             print("Iter: %d, Loss: %.4f" % (total_steps, loss.item()))
-            ### change evaluate to functions
-
-            if total_steps % cfg.val_freq == cfg.val_freq - 1:
-                PATH = '%s/%d_%s.pth' % (cfg.log_dir, total_steps + 1,
-                                         cfg.name)
-                # torch.save(model.state_dict(), PATH)
-
-                results = {}
-                for val_dataset in cfg.validation:
-                    if val_dataset == 'chairs':
-                        results.update(evaluate.validate_chairs(model.module))
-                    elif val_dataset == 'sintel':
-                        results.update(evaluate.validate_sintel(model.module))
-                    elif val_dataset == 'kitti':
-                        results.update(evaluate.validate_kitti(model.module))
-                    elif val_dataset == 'tartanair':
-                        results.update(
-                            evaluate.validate_tartanair(model.module))
-                logger.write_dict(results)
-
-                model.train()
 
             total_steps += 1
 
@@ -151,13 +133,13 @@ def train(cfg):
             if cfg.autosave_freq and total_steps % cfg.autosave_freq == 0:
                 PATH = '%s/%d_%s.pth' % (cfg.log_dir, total_steps + 1,
                                          cfg.name)
-                torch.save(model.state_dict(), PATH)
+                torch.save(g_model.state_dict(), PATH)
     logger.close()
     PATH = cfg.log_dir + '/final'
     torch.save(model.state_dict(), PATH)
 
     PATH = f'checkpoints/{cfg.stage}/{cfg.weight}.pth'
-    torch.save(model.state_dict(), PATH)
+    torch.save(g_model.state_dict(), PATH)
 
     return PATH
 

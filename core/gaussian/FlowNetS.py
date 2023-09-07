@@ -5,12 +5,30 @@ from torch.nn import init
 import math
 import numpy as np
 
-from submodules import *
+from gaussian.submodules import *
+from torch.distributions import MultivariateNormal, MixtureSameFamily
+
+
+class MixtureGaussianConv(nn.Module):
+
+    def __init__(self, cfg):
+        super(MixtureGaussianConv, self).__init__()
+        mixture_num = cfg.mixture_num
+        self.mixture_num = mixture_num
+        #self.means_layer = FlowNetS(input_channels=24, mixture_num=1)
+        self.vars_layer = FlowNetS(input_channels=24, mixture_num=mixture_num)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        #means = self.means_layer(x)
+        vars = self.relu(self.vars_layer(x)) + 1e-6
+
+        return vars
 
 
 class FlowNetS(nn.Module):
 
-    def __init__(self, input_channels=12, batchNorm=True):
+    def __init__(self, input_channels=12, mixture_num=1, batchNorm=True):
         super(FlowNetS, self).__init__()
 
         self.batchNorm = batchNorm
@@ -25,17 +43,17 @@ class FlowNetS(nn.Module):
 
         self.deconv2 = deconv(256, 64)
         self.deconv1 = deconv(128, 32)
-        self.predict_flow3 = predict_flow(256)
-        self.predict_flow2 = predict_flow(194)
-        self.predict_flow1 = predict_flow(98)
-        self.upsampled_flow3_to_2 = nn.ConvTranspose2d(2,
-                                                       2,
+        self.predict_flow3 = predict(256, mixture_num)
+        self.predict_flow2 = predict(192 + mixture_num * 2, mixture_num)
+        self.predict_flow1 = predict(96 + mixture_num * 2, mixture_num)
+        self.upsampled_flow3_to_2 = nn.ConvTranspose2d(mixture_num * 2,
+                                                       mixture_num * 2,
                                                        4,
                                                        2,
                                                        1,
                                                        bias=False)
-        self.upsampled_flow2_to_1 = nn.ConvTranspose2d(2,
-                                                       2,
+        self.upsampled_flow2_to_1 = nn.ConvTranspose2d(mixture_num * 2,
+                                                       mixture_num * 2,
                                                        4,
                                                        2,
                                                        1,
@@ -55,7 +73,6 @@ class FlowNetS(nn.Module):
 
     def forward(self, x):
         out_conv1 = self.conv1(x)
-        print(out_conv1.shape)
         out_conv2 = self.conv2(out_conv1)
         out_conv3 = self.conv3_1(self.conv3(out_conv2))
 
@@ -65,9 +82,7 @@ class FlowNetS(nn.Module):
         out_deconv2 = self.deconv2(out_conv3)
 
         concat2 = torch.cat((out_conv2, out_deconv2, flow3_up), 1)
-        print(out_conv2.shape)
-        print(out_deconv2.shape)
-        print(flow3_up.shape)
+
         flow2 = self.predict_flow2(concat2)
         flow2_up = self.upsampled_flow2_to_1(flow2)
 
@@ -79,13 +94,18 @@ class FlowNetS(nn.Module):
         return flow1_up
 
 
-if __name__ == '__main__':
-    # 定义输入张量
-    x = torch.randn(1, 12, 480, 640)
-    # 创建 FlowNetS 类的实例
-    model = FlowNetS(input_channels=12)
-    # 调用 forward 方法
-    vars = model(x)
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-    print(f"x: {x.shape}")
-    print(f"vars: {vars.shape}")
+
+if __name__ == '__main__':
+
+    x = torch.randn(1, 24, 480, 640)
+    mixture_num = 3
+    model = FlowNetS(input_channels=24, mixture_num=mixture_num)
+    # forward
+    vars = torch.exp(model(x) + 1e-6)
+    #split vars into mixture_num parts
+    vars = vars.split(vars.shape[1] // mixture_num, dim=1)
+    print(f"vars: {vars[1].shape}")
+    print(f"Parameter Count: {count_parameters(model)}")

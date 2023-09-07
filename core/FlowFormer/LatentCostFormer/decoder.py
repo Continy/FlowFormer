@@ -298,16 +298,7 @@ class MemoryDecoder(nn.Module):
 
             # flow = delta_flow
             coords1 = coords1 + delta_flow
-            low_res_flow = coords1 - coords0
-            #flow_up = self.upsample_flow(coords1 - coords0, up_mask)
-            print(low_res_flow.shape)
-            import sys
-            sys.exit()
+            flow_up = self.upsample_flow(coords1 - coords0, up_mask)
             flow_predictions.append(flow_up)
-            # flow_predictions(12)-->mixturegaussian(12)
-            # mixturegaussian(12)-->Expectation(1)-->flow(1)
-            # mixturegaussian(12)-->Variance(1)-->var_map(1)
-        if self.training:
-            return flow_predictions, net
-        else:
-            return flow_predictions[-1], coords1 - coords0
+
+        return flow_predictions
