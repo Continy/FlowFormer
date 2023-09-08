@@ -15,7 +15,7 @@ from ..encoders import twins_svt_large
 import time
 import sys
 from timm.models.layers import Mlp, DropPath, activations, to_2tuple, trunc_normal_
-from .swin_transformer_unet_skip_expand_decoder_sys import BasicLayer, PatchEmbed, PatchExpand, FinalPatchExpand_X4, BasicLayer_up, PatchMerging
+from .backbones import BasicLayer, PatchEmbed, PatchExpand, FinalPatch, BasicLayer_up, PatchMerging
 from ...corr import CorrBlock
 
 
@@ -258,10 +258,10 @@ class MemoryEncoder(nn.Module):
 class UNet(nn.Module):
 
     def __init__(self,
-                 img_size=[240, 320],
-                 patch_size=2,
-                 in_chans=6,
-                 num_classes=19200,
+                 img_size=[480, 640],
+                 patch_size=4,
+                 in_chans=24,
+                 num_classes=2,
                  embed_dim=96,
                  depths=[2, 2, 2, 2],
                  depths_decoder=[1, 2, 2, 2],
@@ -392,15 +392,15 @@ class UNet(nn.Module):
 
         if self.final_upsample == "expand_first":
             print("---final upsample expand_first---")
-            self.up = FinalPatchExpand_X4(
-                input_resolution=(img_size[0] // patch_size,
-                                  img_size[1] // patch_size),
-                dim_scale=4,
-                dim=embed_dim)
-            self.output = nn.Conv2d(in_channels=embed_dim,
-                                    out_channels=self.num_classes,
-                                    kernel_size=1,
-                                    bias=False)
+            self.up = FinalPatch(input_resolution=(img_size[0] // patch_size,
+                                                   img_size[1] // patch_size),
+                                 dim=embed_dim)
+            self.output = nn.Sequential(
+                nn.Conv2d(in_channels=embed_dim,
+                          out_channels=self.num_classes,
+                          kernel_size=1,
+                          stride=2,
+                          bias=False))
 
         self.apply(self._init_weights)
 
@@ -430,7 +430,6 @@ class UNet(nn.Module):
         x_downsample = []
 
         for layer in self.layers:
-            print(x.shape)
             x_downsample.append(x)
             x = layer(x)
 
@@ -454,13 +453,16 @@ class UNet(nn.Module):
 
     def up_x4(self, x):
         H, W = self.patches_resolution
+        #print("H,W:", H, W)
         B, L, C = x.shape
         assert L == H * W, "input features has wrong size"
 
         if self.final_upsample == "expand_first":
+
             x = self.up(x)
-            x = x.view(B, 4 * H, 4 * W, -1)
+            x = x.view(B, H, W, -1)
             x = x.permute(0, 3, 1, 2)  #B,C,H,W
+
             x = self.output(x)
 
         return x
@@ -469,6 +471,7 @@ class UNet(nn.Module):
         x, x_downsample = self.forward_features(x)
         x = self.forward_up_features(x, x_downsample)
         x = self.up_x4(x)
+        #print(self.patches_resolution)
 
         return x
 

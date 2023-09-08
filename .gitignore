@@ -10,3 +10,5 @@ logs
 checkpoints*
 results
 compare
+*.png
+*.npy

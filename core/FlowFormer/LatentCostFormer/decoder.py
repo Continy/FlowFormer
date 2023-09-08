@@ -299,6 +299,9 @@ class MemoryDecoder(nn.Module):
             # flow = delta_flow
             coords1 = coords1 + delta_flow
             flow_up = self.upsample_flow(coords1 - coords0, up_mask)
+            # print(coords1.shape, up_mask.shape)
+            # import sys
+            # sys.exit()
             flow_predictions.append(flow_up)
 
-        return flow_predictions
+        return flow_predictions, up_mask

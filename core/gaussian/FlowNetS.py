@@ -5,7 +5,7 @@ from torch.nn import init
 import math
 import numpy as np
 
-from submodules import *
+from gaussian.submodules import *
 from torch.distributions import MultivariateNormal, MixtureSameFamily
 
 
@@ -74,9 +74,7 @@ class FlowNetS(nn.Module):
     def forward(self, x):
         out_conv1 = self.conv1(x)
         out_conv2 = self.conv2(out_conv1)
-        print(out_conv2.shape)
         out_conv3 = self.conv3_1(self.conv3(out_conv2))
-        print(out_conv3.shape)
         flow3 = self.predict_flow3(out_conv3)
         flow3_up = self.upsampled_flow3_to_2(flow3)
 

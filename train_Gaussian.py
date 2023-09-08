@@ -29,7 +29,7 @@ from core.utils.logger import Logger
 
 # from core.FlowFormer import FlowFormer
 from core.FlowFormer import build_flowformer, build_gaussian
-
+from core.FlowFormer.LatentCostFormer.dimension_test import UNet
 try:
     from torch.cuda.amp import GradScaler
 except:
@@ -61,8 +61,9 @@ def count_parameters(model):
 
 def train(cfg):
     model = nn.DataParallel(build_flowformer(cfg))
-    g_model = nn.DataParallel(build_gaussian(cfg))
-    loguru_logger.info("Parameter Count: %d" % count_parameters(model))
+    #g_model = nn.DataParallel(build_gaussian(cfg))
+    g_model = UNet()
+    #loguru_logger.info("Parameter Count: %d" % count_parameters(model))
     loguru_logger.info("MixtureGaussian Parameter Count: %d" %
                        count_parameters(g_model))
     if cfg.restore_ckpt is not None:
@@ -105,13 +106,16 @@ def train(cfg):
                               0.0, 255.0)
 
             output = {}
-            flow_predictions = model(image1, image2, output)
+            flow_predictions, mask = model(image1, image2, output)
             # flow_predictions(12)-->mixturegaussian(12)
             # mixturegaussian(12)-->variance(1)-->var_map(1)
             flow_all = torch.cat(flow_predictions, dim=1)
+
             vars = g_model(flow_all)
+            # print(vars.shape)
+            # sys.exit()
             loss, metrics = sequence_loss(flow_predictions, flow, valid, cfg,
-                                          vars)
+                                          vars, mask)
 
             g_scaler.scale(loss).backward()
             g_scaler.unscale_(g_optimizer)
@@ -138,7 +142,7 @@ def train(cfg):
     PATH = cfg.log_dir + '/final'
     torch.save(model.state_dict(), PATH)
 
-    PATH = f'checkpoints/{cfg.stage}/{cfg.weight}.pth'
+    PATH = f'checkpoints/{cfg.stage}/u_batch=4.pth'
     torch.save(g_model.state_dict(), PATH)
 
     return PATH
@@ -174,7 +178,7 @@ if __name__ == '__main__':
     cfg.update(vars(args))
     process_cfg(cfg)
     loguru_logger.add(str(Path(cfg.log_dir) / 'log.txt'), encoding="utf8")
-    loguru_logger.info(cfg)
+    #loguru_logger.info(cfg)
 
     torch.manual_seed(1234)
     np.random.seed(1234)

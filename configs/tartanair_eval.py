@@ -6,7 +6,7 @@ _CN.name = ''
 _CN.suffix = ''
 _CN.gamma = 0.85
 _CN.max_flow = 400
-_CN.batch_size = 6
+_CN.batch_size = 1
 _CN.sum_freq = 100
 _CN.val_freq = 5000000
 _CN.image_size = [480, 640]
@@ -17,7 +17,7 @@ _CN.transformer = 'latentcostformer'
 _CN.model = 'checkpoints/final.pth'
 _CN.weight = 'mixturegaussian'
 _CN.autosave_freq = 1500
-_CN.g_model = 'checkpoints/1501_tartanair.pth'
+_CN.g_model = 'checkpoints/tartanair/u_batch=4.pth'
 # latentcostformer
 _CN.latentcostformer = CN()
 _CN.latentcostformer.pe = 'linear'

@@ -463,6 +463,33 @@ class FinalPatchExpand_X4(nn.Module):
         return x
 
 
+class FinalPatch(nn.Module):
+
+    def __init__(self, input_resolution, dim, norm_layer=nn.LayerNorm):
+        super().__init__()
+        self.input_resolution = input_resolution
+        self.dim = dim
+
+        self.expand = nn.Linear(dim, dim, bias=False)
+        self.output_dim = dim
+        self.norm = norm_layer(self.output_dim)
+
+    def forward(self, x):
+        """
+        x: B, H*W, C
+        """
+        H, W = self.input_resolution
+        x = self.expand(x)
+        B, L, C = x.shape
+        assert L == H * W, "input feature has wrong size"
+
+        x = x.view(B, C, H, W)
+        x = x.view(B, -1, self.output_dim)
+        x = self.norm(x)
+
+        return x
+
+
 class BasicLayer(nn.Module):
     """ A basic Swin Transformer layer for one stage.
 

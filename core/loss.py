@@ -3,13 +3,29 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import MultivariateNormal, MixtureSameFamily
 import sys
+import cv2
+import numpy as np
 
 MAX_FLOW = 400
 
 
-def sequence_loss(flow_preds, flow_gt, valid, cfg, vars):
+def upsample_flow(flow, mask):
+    """ Upsample flow field [H/8, W/8, 2] -> [H, W, 2] using convex combination """
+    N, _, H, W = flow.shape
+    mask = mask.view(N, 1, 9, 8, 8, H, W)
+    mask = torch.softmax(mask, dim=2)
+
+    up_flow = F.unfold(8 * flow, [3, 3], padding=1)
+    up_flow = up_flow.view(N, 2, 9, 1, 1, H, W)
+
+    up_flow = torch.sum(mask * up_flow, dim=2)
+    up_flow = up_flow.permute(0, 1, 4, 2, 5, 3)
+    return up_flow.reshape(N, 2, 8 * H, 8 * W)
+
+
+def sequence_loss(flow_preds, flow_gt, valid, cfg, vars, mask):
     """ Loss function defined over sequence of flow predictions """
-    B, C, H, W = flow_gt.shape
+
     gamma = cfg.gamma
     max_flow = cfg.max_flow
     n_predictions = len(flow_preds)
@@ -27,7 +43,18 @@ def sequence_loss(flow_preds, flow_gt, valid, cfg, vars):
         i_weight = gamma**(n_predictions - i - 1)
         i_loss = (flow_preds[i] - flow_gt).abs()
         mse_loss += i_weight * (valid[:, None] * i_loss)
-    vars_mean = torch.mean(vars, dim=1)
+    B, C, H, W = vars.shape
+    k10, k90 = int(B * C * H * W * 0.05), int(B * C * H * W * 0.95)
+    x10, _ = torch.kthvalue(vars.reshape(-1), k10)
+    x90, _ = torch.kthvalue(vars.reshape(-1), k90)
+    vars = torch.clamp(vars, x10, x90)
+    vars_mean = torch.mean(upsample_flow(vars, mask), dim=1)
+    varrr = torch.mean(vars, dim=1)
+    varrr = torch.mean(varrr, dim=0)
+    varrr = varrr.squeeze_(0).squeeze_(0).detach().cpu().numpy()
+    cv2.imwrite('vars.png', varrr * 255)
+    mse_loss = torch.mean(mse_loss, dim=1)
+
     distribution_loss = mse_loss / (2 * torch.exp(2 * vars_mean)) + vars_mean
     #print(distribution_loss.mean())
     epe = torch.sum((flow_preds[-1] - flow_gt)**2, dim=1).sqrt()

@@ -3,14 +3,13 @@ import sys
 from attr import validate
 
 sys.path.append('core')
-
+import torch.nn.functional as F
 from PIL import Image
 import argparse
 import os
 import time
 import numpy as np
 import torch
-import torch.nn.functional as F
 import cv2
 from configs.submission import get_cfg as get_submission_cfg
 from configs.tartanair_eval import get_cfg as get_tartanair_cfg
@@ -50,9 +49,13 @@ def upsample_flow(flow, mask):
     return up_flow.reshape(N, 2, 8 * H, 8 * W)
 
 
-def process_image(i, filelist, model, g_model, result_path):
+def process_image(i, filelist, model, g_model, gt_flow, result_path):
     img1 = np.array(Image.open(filelist[i])).astype(np.uint8)
     img2 = np.array(Image.open(filelist[i + 1])).astype(np.uint8)
+    flow = np.load(gt_flow[i])
+    flow = torch.from_numpy(flow).permute(2, 0, 1).float()
+    flow = flow.unsqueeze_(0).cuda()
+
     img1 = torch.from_numpy(img1).permute(2, 0, 1).float()
     img2 = torch.from_numpy(img2).permute(2, 0, 1).float()
     img1 = img1.cuda()
@@ -66,21 +69,19 @@ def process_image(i, filelist, model, g_model, result_path):
     # flow = flows[0].permute(1, 2, 0).cpu().numpy()
     # np.save(result_path + str(i).zfill(6) + '.npy', flow)
     # flow_img = flow_viz.flow_to_image(vars)
-    #vars = upsample_flow(vars, mask)
-    B, C, H, W = vars.shape
-    k10, k90 = int(B * C * H * W * 0.1), int(B * C * H * W * 0.9)
-    x10, _ = torch.kthvalue(vars.reshape(-1), k10)
-    x90, _ = torch.kthvalue(vars.reshape(-1), k90)
-    vars = torch.clamp(vars, x10, x90)
-    vars = torch.mean(vars, dim=1).cpu()
-    vars.squeeze_(0)
-    img = vars_viz.flow_var_to_img(vars)
+    vars = upsample_flow(vars, mask)
+    mse = (flows[0] - flow).abs().squeeze_(0).cpu()
+    mse = torch.mean(mse, dim=0)
+    vars_mean = vars.mean().cpu()
+    mse_mean = mse.mean().cpu()
+    img = vars_viz.flow_var_to_img(mse)
 
-    cv2.imwrite(result_path + 'vars_10/' + str(i).zfill(6) + '.png', img)
+    # cv2.imwrite(result_path + 'mse/' + str(i).zfill(6) + '.png', img)
     torch.cuda.empty_cache()
     # image = Image.fromarray(flow_img)
     # image.save(result_path + str(i).zfill(6) + '.png')
     print('Saved：{}/{}'.format(i + 1, length))
+    return [vars_mean, mse_mean]
 
 
 if __name__ == '__main__':
@@ -90,7 +91,7 @@ if __name__ == '__main__':
     parser.add_argument('--small', action='store_true', help='use small model')
     parser.add_argument('--datadir',
                         help='dataset dir',
-                        default='abandonedfactory/Easy/P001/image_left/')
+                        default='abandonedfactory/Easy/P001/')
     args = parser.parse_args()
     cfg = get_tartanair_cfg()
 
@@ -98,11 +99,14 @@ if __name__ == '__main__':
     result_path = 'results/' + args.eval + '/'
     if not os.path.exists(result_path):
         os.makedirs(result_path)
-    img_path = 'datasets/' + args.datadir
 
-    pattern = os.path.join(img_path, '*.png')
-    filelist = glob.glob(pattern)
-    length = len(filelist)
+    gt_flow = 'datasets/' + args.datadir + 'flow/'
+    img_path = 'datasets/' + args.datadir + 'image_left/'
+    pattern1 = os.path.join(img_path, '*.png')
+    pattern2 = os.path.join(gt_flow, '*.npy')
+    filelist1 = glob.glob(pattern1)
+    filelist2 = glob.glob(pattern2)
+    length = len(filelist1)
     print(length)
     model = torch.nn.DataParallel(build_flowformer(cfg))
     model.load_state_dict(torch.load(cfg.model))
@@ -114,5 +118,18 @@ if __name__ == '__main__':
     model.eval()
     g_model.eval()
     #length = 3
+    results = []
     for i in range(length - 1):
-        process_image(i, filelist, model, g_model, result_path)
+        result = process_image(i, filelist1, model, g_model, filelist2,
+                               result_path)
+        results.append(result)
+    results = np.array(results)
+    import matplotlib.pyplot as plt
+    x = results[:, 0]
+    y = results[:, 1]
+    np.save('results.npy', results)
+    plt.scatter(x, y)
+    #指定显示的y轴范围
+    plt.ylim((0, 2))
+    plt.show()
+    plt.savefig('vars.png')
