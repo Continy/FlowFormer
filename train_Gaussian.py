@@ -29,7 +29,7 @@ from core.utils.logger import Logger
 
 # from core.FlowFormer import FlowFormer
 from core.FlowFormer import build_flowformer, build_gaussian
-from core.FlowFormer.LatentCostFormer.dimension_test import UNet
+
 try:
     from torch.cuda.amp import GradScaler
 except:
@@ -61,15 +61,17 @@ def count_parameters(model):
 
 def train(cfg):
     model = nn.DataParallel(build_flowformer(cfg))
-    #g_model = nn.DataParallel(build_gaussian(cfg))
-    g_model = UNet()
+    g_model = nn.DataParallel(build_gaussian(cfg))
     #loguru_logger.info("Parameter Count: %d" % count_parameters(model))
     loguru_logger.info("MixtureGaussian Parameter Count: %d" %
                        count_parameters(g_model))
     if cfg.restore_ckpt is not None:
         print("[Loading ckpt from {}]".format(cfg.restore_ckpt))
         model.load_state_dict(torch.load(cfg.restore_ckpt), strict=True)
-
+    if cfg.restore_ckpt_gaussian is not None:
+        print("[Loading ckpt from {}]".format(cfg.restore_ckpt_gaussian))
+        g_model.load_state_dict(torch.load(cfg.restore_ckpt_gaussian),
+                                strict=True)
     model.cuda()
     model.train()
 
@@ -110,13 +112,11 @@ def train(cfg):
             # flow_predictions(12)-->mixturegaussian(12)
             # mixturegaussian(12)-->variance(1)-->var_map(1)
             flow_all = torch.cat(flow_predictions, dim=1)
-
             vars = g_model(flow_all)
             # print(vars.shape)
             # sys.exit()
             loss, metrics = sequence_loss(flow_predictions, flow, valid, cfg,
                                           vars, mask)
-
             g_scaler.scale(loss).backward()
             g_scaler.unscale_(g_optimizer)
             torch.nn.utils.clip_grad_norm_(g_model.parameters(),
@@ -142,7 +142,7 @@ def train(cfg):
     PATH = cfg.log_dir + '/final'
     torch.save(model.state_dict(), PATH)
 
-    PATH = f'checkpoints/{cfg.stage}/u_batch=4.pth'
+    PATH = f'checkpoints/{cfg.stage}/flow_nets_mix_all.pth'
     torch.save(g_model.state_dict(), PATH)
 
     return PATH

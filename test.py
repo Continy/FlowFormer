@@ -68,15 +68,16 @@ def process_image(i, filelist, model, g_model, result_path):
     # flow_img = flow_viz.flow_to_image(vars)
     #vars = upsample_flow(vars, mask)
     B, C, H, W = vars.shape
-    k10, k90 = int(B * C * H * W * 0.1), int(B * C * H * W * 0.9)
-    x10, _ = torch.kthvalue(vars.reshape(-1), k10)
-    x90, _ = torch.kthvalue(vars.reshape(-1), k90)
-    vars = torch.clamp(vars, x10, x90)
+    # k50, k95 = int(B * C * H * W * 0.95), int(B * C * H * W * 1)
+    # x50, _ = torch.kthvalue(vars.reshape(-1), k50)
+    # x95, _ = torch.kthvalue(vars.reshape(-1), k95)
+    # vars = torch.clamp(vars, x50, x95)
     vars = torch.mean(vars, dim=1).cpu()
     vars.squeeze_(0)
-    img = vars_viz.flow_var_to_img(vars)
-
-    cv2.imwrite(result_path + 'vars_10/' + str(i).zfill(6) + '.png', img)
+    # img = vars_viz.flow_var_to_img(vars)
+    vars = vars.detach().numpy()
+    cv2.imwrite(result_path + 'vars_flownets_10/' + str(i).zfill(6) + '.png',
+                vars * 255)
     torch.cuda.empty_cache()
     # image = Image.fromarray(flow_img)
     # image.save(result_path + str(i).zfill(6) + '.png')
@@ -93,7 +94,7 @@ if __name__ == '__main__':
                         default='abandonedfactory/Easy/P001/image_left/')
     args = parser.parse_args()
     cfg = get_tartanair_cfg()
-
+    method = cfg.mixturegaussian
     #print(cfg)
     result_path = 'results/' + args.eval + '/'
     if not os.path.exists(result_path):
@@ -106,8 +107,13 @@ if __name__ == '__main__':
     print(length)
     model = torch.nn.DataParallel(build_flowformer(cfg))
     model.load_state_dict(torch.load(cfg.model))
-    #g_model = torch.nn.DataParallel(build_gaussian(cfg))
-    g_model = UNet()
+    if method.method == 'U-net':
+        g_model = UNet()
+    elif method.method == 'FlowNetS':
+        g_model = torch.nn.DataParallel(build_gaussian(cfg))
+    else:
+        print('wrong method')
+        sys.exit()
     g_model.load_state_dict(torch.load(cfg.g_model))
     model.cuda()
     g_model.cuda()

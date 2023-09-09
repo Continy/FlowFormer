@@ -28,6 +28,7 @@ def sequence_loss(flow_preds, flow_gt, valid, cfg, vars, mask):
 
     gamma = cfg.gamma
     max_flow = cfg.max_flow
+    method = cfg.mixturegaussian
     n_predictions = len(flow_preds)
     mse_loss = torch.zeros_like(flow_gt)
     vars_mean = torch.zeros_like(flow_gt)
@@ -44,19 +45,25 @@ def sequence_loss(flow_preds, flow_gt, valid, cfg, vars, mask):
         i_loss = (flow_preds[i] - flow_gt).abs()
         mse_loss += i_weight * (valid[:, None] * i_loss)
     B, C, H, W = vars.shape
-    k10, k90 = int(B * C * H * W * 0.05), int(B * C * H * W * 0.95)
-    x10, _ = torch.kthvalue(vars.reshape(-1), k10)
-    x90, _ = torch.kthvalue(vars.reshape(-1), k90)
-    vars = torch.clamp(vars, x10, x90)
-    vars_mean = torch.mean(upsample_flow(vars, mask), dim=1)
-    varrr = torch.mean(vars, dim=1)
-    varrr = torch.mean(varrr, dim=0)
-    varrr = varrr.squeeze_(0).squeeze_(0).detach().cpu().numpy()
-    cv2.imwrite('vars.png', varrr * 255)
+    # k10, k90 = int(B * C * H * W * 0.05), int(B * C * H * W * 0.95)
+    # x10, _ = torch.kthvalue(vars.reshape(-1), k10)
+    # x90, _ = torch.kthvalue(vars.reshape(-1), k90)
+    # vars = torch.clamp(vars, x10, x90)
+    if method.method == 'U-net':
+        vars_mean = torch.mean(upsample_flow(vars, mask), dim=1)
+    elif method.method == 'FlowNetS':
+        vars_mean = torch.mean(vars, dim=1)
+    else:
+        print('wrong method')
+        sys.exit()
+    if method.training_viz:
+        varrr = torch.mean(vars, dim=1)
+        varrr = torch.mean(varrr, dim=0)
+        varrr = varrr.squeeze_(0).squeeze_(0).detach().cpu().numpy()
+        cv2.imwrite('vars.png', varrr * 255)
     mse_loss = torch.mean(mse_loss, dim=1)
-
     distribution_loss = mse_loss / (2 * torch.exp(2 * vars_mean)) + vars_mean
-    #print(distribution_loss.mean())
+
     epe = torch.sum((flow_preds[-1] - flow_gt)**2, dim=1).sqrt()
     epe = epe.view(-1)[valid.view(-1)]
 

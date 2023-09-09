@@ -17,7 +17,7 @@ _CN.transformer = 'latentcostformer'
 _CN.model = 'checkpoints/final.pth'
 _CN.weight = 'mixturegaussian'
 _CN.autosave_freq = 1500
-_CN.g_model = 'checkpoints/tartanair/u_batch=4.pth'
+_CN.g_model = 'checkpoints/tartanair/flow_nets_mix_all.pth'
 # latentcostformer
 _CN.latentcostformer = CN()
 _CN.latentcostformer.pe = 'linear'
@@ -59,7 +59,9 @@ _CN.latentcostformer.critical_params = [
 #weight
 _CN.mixturegaussian = CN()
 _CN.mixturegaussian.mixture_num = 3
-
+#_CN.mixturegaussian.method = 'U-net'
+_CN.mixturegaussian.method = 'FlowNetS'
+_CN.mixturegaussian.training_viz = True
 ### TRAINER
 _CN.trainer = CN()
 _CN.trainer.scheduler = 'OneCycleLR'

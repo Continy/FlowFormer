@@ -15,7 +15,6 @@ class MixtureGaussianConv(nn.Module):
         super(MixtureGaussianConv, self).__init__()
         mixture_num = cfg.mixture_num
         self.mixture_num = mixture_num
-        #self.means_layer = FlowNetS(input_channels=24, mixture_num=1)
         self.vars_layer = FlowNetS(input_channels=24, mixture_num=mixture_num)
         self.relu = nn.ReLU()
 

@@ -65,11 +65,12 @@ def process_image(i, filelist, model, g_model, gt_flow, result_path):
     with torch.no_grad():
         flows, mask = model(img1, img2, {})
         flow_all = torch.cat(flows, dim=1)
+
         vars = g_model(flow_all)
     # flow = flows[0].permute(1, 2, 0).cpu().numpy()
     # np.save(result_path + str(i).zfill(6) + '.npy', flow)
     # flow_img = flow_viz.flow_to_image(vars)
-    vars = upsample_flow(vars, mask)
+    #vars = upsample_flow(vars, mask)
     mse = (flows[0] - flow).abs().squeeze_(0).cpu()
     mse = torch.mean(mse, dim=0)
     vars_mean = vars.mean().cpu()
@@ -110,8 +111,13 @@ if __name__ == '__main__':
     print(length)
     model = torch.nn.DataParallel(build_flowformer(cfg))
     model.load_state_dict(torch.load(cfg.model))
-    #g_model = torch.nn.DataParallel(build_gaussian(cfg))
-    g_model = UNet()
+    if cfg.mixturegaussian.method == 'FlowNetS':
+        g_model = torch.nn.DataParallel(build_gaussian(cfg))
+    elif cfg.mixturegaussian.method == 'U-net':
+        g_model = UNet()
+    else:
+        print('wrong method')
+        sys.exit()
     g_model.load_state_dict(torch.load(cfg.g_model))
     model.cuda()
     g_model.cuda()
@@ -127,9 +133,12 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     x = results[:, 0]
     y = results[:, 1]
-    np.save('results.npy', results)
-    plt.scatter(x, y)
-    #指定显示的y轴范围
-    plt.ylim((0, 2))
+    name = 'results_mix_all'
+    np.save(name + '.npy', results)
+    plt.plot(x, y, 'o')
+    corr_coef = np.corrcoef(x, y)[0, 1]
+    plt.xlabel('mean of variance')
+    plt.ylabel('mean of mse')
+    plt.title('correlation coefficient:{}'.format(corr_coef))
+    plt.savefig(name + '.png')
     plt.show()
-    plt.savefig('vars.png')

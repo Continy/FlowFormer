@@ -17,7 +17,8 @@ _CN.transformer = 'latentcostformer'
 _CN.weight = 'mixturegaussian'
 _CN.autosave_freq = 1500
 _CN.restore_ckpt = 'checkpoints/final.pth'
-_CN.restore_ckpt_gaussian = 'checkpoints/tartanair/1501_tartanair.pth'
+_CN.restore_ckpt_gaussian = None
+#_CN.restore_ckpt_gaussian = 'checkpoints/flownets.pth'
 #_CN.root = '/project/learningvo/tartanair_v1_5/abandonedfactory/Data/'
 _CN.root = None
 #_CN.restore_ckpt = None
@@ -62,7 +63,9 @@ _CN.latentcostformer.critical_params = [
 #weight
 _CN.mixturegaussian = CN()
 _CN.mixturegaussian.mixture_num = 3
-
+#_CN.mixturegaussian.method = 'U-net'
+_CN.mixturegaussian.method = 'FlowNetS'
+_CN.mixturegaussian.training_viz = True
 ### TRAINER
 _CN.trainer = CN()
 _CN.trainer.scheduler = 'OneCycleLR'
@@ -70,7 +73,7 @@ _CN.trainer.optimizer = 'adamw'
 _CN.trainer.canonical_lr = 12.5e-5
 _CN.trainer.adamw_decay = 1e-5
 _CN.trainer.clip = 1.0
-_CN.trainer.num_steps = 5000
+_CN.trainer.num_steps = 1500
 _CN.trainer.epsilon = 1e-8
 _CN.trainer.anneal_strategy = 'linear'
 
