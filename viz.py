@@ -35,21 +35,7 @@ KITTI_SIZE = [370, 1226]
 TARTANAIR_SIZE = [480, 640]
 
 
-def upsample_flow(flow, mask):
-    """ Upsample flow field [H/8, W/8, 2] -> [H, W, 2] using convex combination """
-    N, _, H, W = flow.shape
-    mask = mask.view(N, 1, 9, 8, 8, H, W)
-    mask = torch.softmax(mask, dim=2)
-
-    up_flow = F.unfold(8 * flow, [3, 3], padding=1)
-    up_flow = up_flow.view(N, 2, 9, 1, 1, H, W)
-
-    up_flow = torch.sum(mask * up_flow, dim=2)
-    up_flow = up_flow.permute(0, 1, 4, 2, 5, 3)
-    return up_flow.reshape(N, 2, 8 * H, 8 * W)
-
-
-def process_image(i, filelist, model, g_model, gt_flow, result_path):
+def process_image(i, filelist, model, gt_flow):
     img1 = np.array(Image.open(filelist[i])).astype(np.uint8)
     img2 = np.array(Image.open(filelist[i + 1])).astype(np.uint8)
     flow = np.load(gt_flow[i])
@@ -63,10 +49,8 @@ def process_image(i, filelist, model, g_model, gt_flow, result_path):
     img1 = img1.unsqueeze(0)
     img2 = img2.unsqueeze(0)
     with torch.no_grad():
-        flows, mask = model(img1, img2, {})
-        flow_all = torch.cat(flows, dim=1)
+        flows, vars = model(img1, img2, {})
 
-        vars = g_model(flow_all)
     # flow = flows[0].permute(1, 2, 0).cpu().numpy()
     # np.save(result_path + str(i).zfill(6) + '.npy', flow)
     # flow_img = flow_viz.flow_to_image(vars)
@@ -75,7 +59,7 @@ def process_image(i, filelist, model, g_model, gt_flow, result_path):
     mse = torch.mean(mse, dim=0)
     vars_mean = vars.mean().cpu()
     mse_mean = mse.mean().cpu()
-    img = vars_viz.flow_var_to_img(mse)
+    #img = vars_viz.flow_var_to_img(mse)
 
     # cv2.imwrite(result_path + 'mse/' + str(i).zfill(6) + '.png', img)
     torch.cuda.empty_cache()
@@ -110,30 +94,22 @@ if __name__ == '__main__':
     length = len(filelist1)
     print(length)
     model = torch.nn.DataParallel(build_flowformer(cfg))
-    model.load_state_dict(torch.load(cfg.model))
-    if cfg.mixturegaussian.method == 'FlowNetS':
-        g_model = torch.nn.DataParallel(build_gaussian(cfg))
-    elif cfg.mixturegaussian.method == 'U-net':
-        g_model = UNet()
-    else:
-        print('wrong method')
-        sys.exit()
-    g_model.load_state_dict(torch.load(cfg.g_model))
+    model.load_state_dict(torch.load(cfg.model), strict=True)
+
     model.cuda()
-    g_model.cuda()
+
     model.eval()
-    g_model.eval()
+
     #length = 3
     results = []
     for i in range(length - 1):
-        result = process_image(i, filelist1, model, g_model, filelist2,
-                               result_path)
+        result = process_image(i, filelist1, model, filelist2)
         results.append(result)
     results = np.array(results)
     import matplotlib.pyplot as plt
     x = results[:, 0]
     y = results[:, 1]
-    name = 'results_mix_all'
+    name = 'gru'
     np.save(name + '.npy', results)
     plt.plot(x, y, 'o')
     corr_coef = np.corrcoef(x, y)[0, 1]

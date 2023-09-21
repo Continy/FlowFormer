@@ -14,7 +14,7 @@ _CN.add_noise = False
 _CN.critical_params = []
 
 _CN.transformer = 'latentcostformer'
-_CN.model = 'checkpoints/final.pth'
+_CN.model = 'checkpoints/tartanair/flow_nets_mix_all.pth'
 _CN.weight = 'mixturegaussian'
 _CN.autosave_freq = 1500
 _CN.g_model = 'checkpoints/tartanair/flow_nets_mix_all.pth'
@@ -56,6 +56,7 @@ _CN.latentcostformer.critical_params = [
     'cost_heads_num', 'vert_c_dim', 'cnet', 'pretrain', 'add_flow_token',
     'encoder_depth', 'gma', 'cost_encoder_res'
 ]
+_CN.latentcostformer.mixtures = 3
 #weight
 _CN.mixturegaussian = CN()
 _CN.mixturegaussian.mixture_num = 3
