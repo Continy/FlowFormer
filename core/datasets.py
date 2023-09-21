@@ -237,24 +237,33 @@ class TartanAir(FlowDataset):
     def __init__(
             self,
             aug_params=None,
-            root='C:\\Users\\zihaozhang\\Desktop\\git\\FlowFormer-Official\\datasets\\abandonedfactory\\Easy\\',
+            root='D:\\gits\\FlowFormer-Official\\datasets\\abandonedfactory\\Easy\\',
             folderlength=2):
         super(TartanAir, self).__init__(aug_params, npy=True)
-        generate_string_list = lambda: [
-            f'P{i:03d}' for i in range(0, folderlength)
-        ]
-
-        for path in generate_string_list():
-            flow_length = len(
-                glob(os.path.join(root, path, 'flow', '*_flow.npy')))
-            print('find {} flow files in {}'.format(flow_length, path))
-            flows = sorted(glob(os.path.join(root, path, 'flow', '*.npy')))
-            #print(flows)
-            images = sorted(
-                glob(os.path.join(root, path, 'image_left', '*.png')))
+        if folderlength == None:
+            flow_length = len(glob(os.path.join(root, 'flow', '*_flow.npy')))
+            print('find {} flow files in {}'.format(flow_length, root))
+            flows = sorted(glob(os.path.join(root, 'flow', '*.npy')))
+            images = sorted(glob(os.path.join(root, 'image_left', '*.png')))
             for i in range(flow_length - 1):
                 self.flow_list += [flows[i]]
                 self.image_list += [[images[i], images[i + 1]]]
+        else:
+            generate_string_list = lambda: [
+                f'P{i:03d}' for i in range(0, folderlength)
+            ]
+
+            for path in generate_string_list():
+                flow_length = len(
+                    glob(os.path.join(root, path, 'flow', '*_flow.npy')))
+                print('find {} flow files in {}'.format(flow_length, root))
+                flows = sorted(glob(os.path.join(root, path, 'flow', '*.npy')))
+                #print(flows)
+                images = sorted(
+                    glob(os.path.join(root, path, 'image_left', '*.png')))
+                for i in range(flow_length - 1):
+                    self.flow_list += [flows[i]]
+                    self.image_list += [[images[i], images[i + 1]]]
 
 
 def fetch_dataloader(args, TRAIN_DS='C+T+K+S+H'):

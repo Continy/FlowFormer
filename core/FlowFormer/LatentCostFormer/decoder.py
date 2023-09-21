@@ -214,16 +214,17 @@ class MemoryDecoder(nn.Module):
 
     def upsample_flow(self, flow, mask):
         """ Upsample flow field [H/8, W/8, 2] -> [H, W, 2] using convex combination """
-        N, _, H, W = flow.shape
+        N, C, H, W = flow.shape
         mask = mask.view(N, 1, 9, 8, 8, H, W)
         mask = torch.softmax(mask, dim=2)
 
         up_flow = F.unfold(8 * flow, [3, 3], padding=1)
-        up_flow = up_flow.view(N, 2, 9, 1, 1, H, W)
+
+        up_flow = up_flow.view(N, C, 9, 1, 1, H, W)
 
         up_flow = torch.sum(mask * up_flow, dim=2)
         up_flow = up_flow.permute(0, 1, 4, 2, 5, 3)
-        return up_flow.reshape(N, 2, 8 * H, 8 * W)
+        return up_flow.reshape(N, C, 8 * H, 8 * W)
 
     def encode_flow_token(self, cost_maps, coords):
         """
@@ -252,7 +253,9 @@ class MemoryDecoder(nn.Module):
         """
         cost_maps = data['cost_maps']
         coords0, coords1 = initialize_flow(context)
-
+        covs0, covs1 = initialize_flow(context)
+        covs0 = covs0.repeat(1, self.cfg.mixtures, 1, 1)
+        covs1 = covs1.repeat(1, self.cfg.mixtures, 1, 1)
         if flow_init is not None:
             #print("[Using warm start]")
             coords1 = coords1 + flow_init
@@ -260,10 +263,11 @@ class MemoryDecoder(nn.Module):
         #flow = coords1
 
         flow_predictions = []
-
+        covs = []
         context = self.proj(context)
         net, inp = torch.split(context, [128, 128], dim=1)
         net = torch.tanh(net)
+        cov_net = net.clone()
         inp = torch.relu(inp)
         if self.cfg.gma:
             attention = self.att(inp)
@@ -290,18 +294,17 @@ class MemoryDecoder(nn.Module):
             flow = coords1 - coords0
 
             if self.cfg.gma:
-                net, up_mask, delta_flow = self.update_block(
-                    net, inp, corr, flow, attention)
+                net, cov_net, up_mask, delta_flow, delta_cov = self.update_block(
+                    net, cov_net, inp, corr, flow, attention)
             else:
                 net, up_mask, delta_flow = self.update_block(
                     net, inp, corr, flow)
 
             # flow = delta_flow
             coords1 = coords1 + delta_flow
+            covs1 = covs1 + delta_cov
             flow_up = self.upsample_flow(coords1 - coords0, up_mask)
-            # print(coords1.shape, up_mask.shape)
-            # import sys
-            # sys.exit()
+            cov_up = self.upsample_flow(covs1 - covs0, up_mask)
             flow_predictions.append(flow_up)
-
-        return flow_predictions, up_mask
+            covs.append(cov_up)
+        return flow_predictions, covs[-1]

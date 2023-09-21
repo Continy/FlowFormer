@@ -23,7 +23,7 @@ def upsample_flow(flow, mask):
     return up_flow.reshape(N, 2, 8 * H, 8 * W)
 
 
-def sequence_loss(flow_preds, flow_gt, valid, cfg, vars, mask):
+def sequence_loss(flow_preds, flow_gt, valid, cfg, vars):
     """ Loss function defined over sequence of flow predictions """
 
     gamma = cfg.gamma
@@ -33,7 +33,7 @@ def sequence_loss(flow_preds, flow_gt, valid, cfg, vars, mask):
     mse_loss = torch.zeros_like(flow_gt)
     vars_mean = torch.zeros_like(flow_gt)
     distribution_loss = torch.zeros_like(flow_gt)
-    #mse_loss, vars_mean, distribution_loss = 0.0, 0.0, 0.0
+
     flow_gt_thresholds = [5, 10, 20]
 
     # exlude invalid pixels and extremely large diplacements
@@ -44,18 +44,9 @@ def sequence_loss(flow_preds, flow_gt, valid, cfg, vars, mask):
         i_weight = gamma**(n_predictions - i - 1)
         i_loss = (flow_preds[i] - flow_gt).abs()
         mse_loss += i_weight * (valid[:, None] * i_loss)
-    B, C, H, W = vars.shape
-    # k10, k90 = int(B * C * H * W * 0.05), int(B * C * H * W * 0.95)
-    # x10, _ = torch.kthvalue(vars.reshape(-1), k10)
-    # x90, _ = torch.kthvalue(vars.reshape(-1), k90)
-    # vars = torch.clamp(vars, x10, x90)
-    if method.method == 'U-net':
-        vars_mean = torch.mean(upsample_flow(vars, mask), dim=1)
-    elif method.method == 'FlowNetS':
-        vars_mean = torch.mean(vars, dim=1)
-    else:
-        print('wrong method')
-        sys.exit()
+
+    vars_mean = torch.mean(vars, dim=1)
+
     if method.training_viz:
         varrr = torch.mean(vars, dim=1)
         varrr = torch.mean(varrr, dim=0)

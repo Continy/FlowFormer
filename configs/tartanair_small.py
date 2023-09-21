@@ -12,15 +12,16 @@ _CN.val_freq = 5000000
 _CN.image_size = [480, 640]
 _CN.add_noise = True
 _CN.critical_params = []
-_CN.folderlength = 1
+_CN.folderlength = None
 _CN.transformer = 'latentcostformer'
 _CN.weight = 'mixturegaussian'
 _CN.autosave_freq = 1500
 _CN.restore_ckpt = 'checkpoints/final.pth'
 _CN.restore_ckpt_gaussian = None
+_CN.log = False
 #_CN.restore_ckpt_gaussian = 'checkpoints/flownets.pth'
-#_CN.root = '/project/learningvo/tartanair_v1_5/abandonedfactory/Data/'
-_CN.root = None
+_CN.root = 'D:\\gits\\FlowFormer-Official\\datasets\\abandonedfactory\\Easy\\P001\\'
+#_CN.root = None
 #_CN.restore_ckpt = None
 # latentcostformer
 _CN.latentcostformer = CN()
@@ -53,7 +54,7 @@ _CN.latentcostformer.only_global = False
 _CN.latentcostformer.add_flow_token = True
 _CN.latentcostformer.use_mlp = False
 _CN.latentcostformer.vertical_conv = False
-
+_CN.latentcostformer.mixtures = 3
 # decoder
 _CN.latentcostformer.decoder_depth = 12
 _CN.latentcostformer.critical_params = [

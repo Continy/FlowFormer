@@ -61,41 +61,39 @@ def count_parameters(model):
 
 def train(cfg):
     model = nn.DataParallel(build_flowformer(cfg))
-    g_model = nn.DataParallel(build_gaussian(cfg))
+
     #loguru_logger.info("Parameter Count: %d" % count_parameters(model))
-    loguru_logger.info("MixtureGaussian Parameter Count: %d" %
-                       count_parameters(g_model))
+
     if cfg.restore_ckpt is not None:
         print("[Loading ckpt from {}]".format(cfg.restore_ckpt))
-        model.load_state_dict(torch.load(cfg.restore_ckpt), strict=True)
-    if cfg.restore_ckpt_gaussian is not None:
-        print("[Loading ckpt from {}]".format(cfg.restore_ckpt_gaussian))
-        g_model.load_state_dict(torch.load(cfg.restore_ckpt_gaussian),
-                                strict=True)
+        model.load_state_dict(torch.load(cfg.restore_ckpt), strict=False)
+
     model.cuda()
     model.train()
 
     #freeze the FlowFormer
     for param in model.parameters():
         param.requires_grad = False
-
-    g_model.cuda()
-    g_model.train()
-
+    for param in model.module.memory_decoder.update_block.gaussian.parameters(
+    ):
+        param.requires_grad = True
+    for param in model.module.memory_decoder.update_block.gaussian_head.parameters(
+    ):
+        param.requires_grad = True
     train_loader = datasets.fetch_dataloader(cfg)
-
-    g_optimizer, g_scheduler = fetch_optimizer(g_model, cfg.trainer)
+    optimizer, scheduler = fetch_optimizer(
+        model.module.memory_decoder.update_block, cfg.trainer)
     total_steps = 0
-
-    g_scaler = GradScaler(enabled=cfg.mixed_precision)
-    logger = Logger(g_model, g_scheduler, cfg)
+    scaler = GradScaler(enabled=cfg.mixed_precision)
+    if cfg.log:
+        logger = Logger(model, scheduler, cfg)
 
     should_keep_training = True
     while should_keep_training:
 
         for i_batch, data_blob in enumerate(train_loader):
 
-            g_optimizer.zero_grad()
+            optimizer.zero_grad()
             image1, image2, flow, valid = [x.cuda() for x in data_blob]
 
             if cfg.add_noise:
@@ -108,25 +106,20 @@ def train(cfg):
                               0.0, 255.0)
 
             output = {}
-            flow_predictions, mask = model(image1, image2, output)
-            # flow_predictions(12)-->mixturegaussian(12)
-            # mixturegaussian(12)-->variance(1)-->var_map(1)
-            flow_all = torch.cat(flow_predictions, dim=1)
-            vars = g_model(flow_all)
-            # print(vars.shape)
-            # sys.exit()
-            loss, metrics = sequence_loss(flow_predictions, flow, valid, cfg,
-                                          vars, mask)
-            g_scaler.scale(loss).backward()
-            g_scaler.unscale_(g_optimizer)
-            torch.nn.utils.clip_grad_norm_(g_model.parameters(),
-                                           cfg.trainer.clip)
-            g_scaler.step(g_optimizer)
-            g_scheduler.step()
-            g_scaler.update()
+            flow_predictions, covs = model(image1, image2, output)
 
-            metrics.update(output)
-            logger.push(metrics)
+            loss, metrics = sequence_loss(flow_predictions, flow, valid, cfg,
+                                          covs)
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(),
+                                           cfg.trainer.clip)
+            scaler.step(optimizer)
+            scheduler.step()
+            scaler.update()
+            if cfg.log:
+                metrics.update(output)
+                logger.push(metrics)
             print("Iter: %d, Loss: %.4f" % (total_steps, loss.item()))
 
             total_steps += 1
@@ -134,16 +127,17 @@ def train(cfg):
             if total_steps > cfg.trainer.num_steps:
                 should_keep_training = False
                 break
-            if cfg.autosave_freq and total_steps % cfg.autosave_freq == 0:
+            if cfg.autosave_freq and total_steps % cfg.autosave_freq == 0 and cfg.log:
                 PATH = '%s/%d_%s.pth' % (cfg.log_dir, total_steps + 1,
                                          cfg.name)
-                torch.save(g_model.state_dict(), PATH)
-    logger.close()
-    PATH = cfg.log_dir + '/final'
-    torch.save(model.state_dict(), PATH)
+                torch.save(model.state_dict(), PATH)
+    if cfg.log:
+        logger.close()
+        PATH = cfg.log_dir + '/final'
+        torch.save(model.state_dict(), PATH)
 
     PATH = f'checkpoints/{cfg.stage}/flow_nets_mix_all.pth'
-    torch.save(g_model.state_dict(), PATH)
+    torch.save(model.state_dict(), PATH)
 
     return PATH
 
@@ -160,6 +154,7 @@ if __name__ == '__main__':
     parser.add_argument('--mixed_precision',
                         action='store_true',
                         help='use mixed precision')
+    parser.add_argument('--log', action='store_true', help='disable logging')
 
     args = parser.parse_args()
 
@@ -176,8 +171,11 @@ if __name__ == '__main__':
 
     cfg = get_cfg()
     cfg.update(vars(args))
-    process_cfg(cfg)
-    loguru_logger.add(str(Path(cfg.log_dir) / 'log.txt'), encoding="utf8")
+
+    if args.log:
+        process_cfg(cfg)
+        loguru_logger.add(str(Path(cfg.log_dir) / 'log.txt'), encoding="utf8")
+        cfg.log = True
     #loguru_logger.info(cfg)
 
     torch.manual_seed(1234)
