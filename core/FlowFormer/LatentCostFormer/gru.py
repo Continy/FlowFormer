@@ -162,12 +162,9 @@ class GMAUpdateBlock(nn.Module):
         self.encoder = BasicMotionEncoder(args)
         self.gru = SepConvGRU(hidden_dim=hidden_dim,
                               input_dim=128 + hidden_dim + hidden_dim)
-        self.gaussian = SepConvGRU(hidden_dim=hidden_dim,
-                                   input_dim=128 + hidden_dim + hidden_dim)
+
         self.flow_head = FlowHead(hidden_dim, hidden_dim=256)
-        self.gaussian_head = GaussianHead(hidden_dim,
-                                          hidden_dim=256,
-                                          mixtures=args.mixtures)
+
         self.mask = nn.Sequential(nn.Conv2d(128, 256, 3, padding=1),
                                   nn.ReLU(inplace=True),
                                   nn.Conv2d(256, 64 * 9, 1, padding=0))
@@ -176,18 +173,34 @@ class GMAUpdateBlock(nn.Module):
                                     dim_head=128,
                                     heads=1)
 
-    def forward(self, flow_net, covs_net, inp, corr, flow, attention):
+    def forward(self, net, inp, corr, flow, attention):
         motion_features = self.encoder(flow, corr)
         motion_features_global = self.aggregator(attention, motion_features)
         inp_cat = torch.cat([inp, motion_features, motion_features_global],
                             dim=1)
 
-        # Attentional update
-        flow_net = self.gru(flow_net, inp_cat)
-        covs_net = self.gaussian(covs_net, inp_cat)
-        delta_flow = self.flow_head(flow_net)
-        delta_covs = self.gaussian_head(covs_net)
-        # scale mask to balence gradients
-        mask = .25 * self.mask(flow_net)
+        net = self.gru(net, inp_cat)
+        delta_flow = self.flow_head(net)
+        mask = .25 * self.mask(net)
+        return net, mask, delta_flow, inp_cat
 
-        return flow_net, covs_net, mask, delta_flow, delta_covs
+
+class GaussianUpdateBlock(nn.Module):
+
+    def __init__(self, args, hidden_dim=128):
+        super().__init__()
+        self.args = args
+        self.gaussian = SepConvGRU(hidden_dim=hidden_dim,
+                                   input_dim=128 + hidden_dim + hidden_dim)
+        self.gaussian_head = GaussianHead(hidden_dim,
+                                          hidden_dim=256,
+                                          mixtures=args.mixtures)
+        self.mask = nn.Sequential(nn.Conv2d(128, 256, 3, padding=1),
+                                  nn.ReLU(inplace=True),
+                                  nn.Conv2d(256, 64 * 9, 1, padding=0))
+
+    def forward(self, covs_net, inp_cat):
+        covs_net = self.gaussian(covs_net, inp_cat)
+        delta_covs = self.gaussian_head(covs_net)
+        mask = .25 * self.mask(covs_net)
+        return covs_net, delta_covs, mask

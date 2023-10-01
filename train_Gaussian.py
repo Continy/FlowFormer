@@ -74,15 +74,11 @@ def train(cfg):
     #freeze the FlowFormer
     for param in model.parameters():
         param.requires_grad = False
-    for param in model.module.memory_decoder.update_block.gaussian.parameters(
-    ):
-        param.requires_grad = True
-    for param in model.module.memory_decoder.update_block.gaussian_head.parameters(
-    ):
+    for param in model.module.memory_decoder.gaussian.parameters():
         param.requires_grad = True
     train_loader = datasets.fetch_dataloader(cfg)
     optimizer, scheduler = fetch_optimizer(
-        model.module.memory_decoder.update_block, cfg.trainer)
+        model.module.memory_decoder.gaussian, cfg.trainer)
     total_steps = 0
     scaler = GradScaler(enabled=cfg.mixed_precision)
     if cfg.log:
@@ -107,7 +103,6 @@ def train(cfg):
 
             output = {}
             flow_predictions, covs = model(image1, image2, output)
-
             loss, metrics = sequence_loss(flow_predictions, flow, valid, cfg,
                                           covs)
             scaler.scale(loss).backward()
@@ -136,7 +131,7 @@ def train(cfg):
         PATH = cfg.log_dir + '/final'
         torch.save(model.state_dict(), PATH)
 
-    PATH = f'checkpoints/{cfg.stage}/flow_nets_mix_all.pth'
+    PATH = f'checkpoints/gru/3000_mask.pth'
     torch.save(model.state_dict(), PATH)
 
     return PATH

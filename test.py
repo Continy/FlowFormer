@@ -52,7 +52,7 @@ def process_image(i, filelist, model, result_path):
     vars.squeeze_(0)
     vars = vars.detach()
     img = vars_viz.flow_var_to_img(vars)
-    cv2.imwrite(result_path + 'vars_gru/' + str(i).zfill(6) + '.png', img)
+    cv2.imwrite(result_path + 'gru_mask/' + str(i).zfill(6) + '.png', img)
     torch.cuda.empty_cache()
 
     print('Saved：{}/{}'.format(i + 1, length))

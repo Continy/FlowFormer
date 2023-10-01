@@ -14,7 +14,7 @@ from typing import Optional, Tuple
 
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 
-from .gru import BasicUpdateBlock, GMAUpdateBlock
+from .gru import BasicUpdateBlock, GMAUpdateBlock, GaussianUpdateBlock
 from .gma import Attention
 
 
@@ -204,6 +204,7 @@ class MemoryDecoder(nn.Module):
 
         if self.cfg.gma:
             self.update_block = GMAUpdateBlock(self.cfg, hidden_dim=128)
+            self.gaussian = GaussianUpdateBlock(self.cfg, hidden_dim=128)
             self.att = Attention(args=self.cfg,
                                  dim=128,
                                  heads=1,
@@ -275,36 +276,31 @@ class MemoryDecoder(nn.Module):
         size = net.shape
         key, value = None, None
         up_mask = None
+        coords1 = coords1.detach()
+        cost_forward = self.encode_flow_token(cost_maps, coords1)
+
+        query = self.flow_token_encoder(cost_forward)
+        query = query.permute(0, 2, 3,
+                              1).contiguous().view(size[0] * size[2] * size[3],
+                                                   1, self.dim)
+        cost_global, key, value = self.decoder_layer(query, key, value,
+                                                     cost_memory, coords1,
+                                                     size, data['H3W3'])
+
+        if self.cfg.only_global:
+            corr = cost_global
+        else:
+            corr = torch.cat([cost_global, cost_forward], dim=1)
+
+        flow = coords1 - coords0
+
+        net, up_mask, delta_flow, inp_cat = self.update_block(
+            net, inp, corr, flow, attention)
+        coords1 = coords1 + delta_flow
+        flow_up = self.upsample_flow(coords1 - coords0, up_mask)
         for idx in range(self.depth):
-            coords1 = coords1.detach()
-
-            cost_forward = self.encode_flow_token(cost_maps, coords1)
-            #cost_backward = self.reverse_cost_extractor(cost_maps, coords0, coords1)
-
-            query = self.flow_token_encoder(cost_forward)
-            query = query.permute(0, 2, 3, 1).contiguous().view(
-                size[0] * size[2] * size[3], 1, self.dim)
-            cost_global, key, value = self.decoder_layer(
-                query, key, value, cost_memory, coords1, size, data['H3W3'])
-            if self.cfg.only_global:
-                corr = cost_global
-            else:
-                corr = torch.cat([cost_global, cost_forward], dim=1)
-
-            flow = coords1 - coords0
-
-            if self.cfg.gma:
-                net, cov_net, up_mask, delta_flow, delta_cov = self.update_block(
-                    net, cov_net, inp, corr, flow, attention)
-            else:
-                net, up_mask, delta_flow = self.update_block(
-                    net, inp, corr, flow)
-
-            # flow = delta_flow
-            coords1 = coords1 + delta_flow
+            cov_net, delta_cov, mask = self.gaussian(cov_net, inp_cat)
             covs1 = covs1 + delta_cov
-            flow_up = self.upsample_flow(coords1 - coords0, up_mask)
-            cov_up = self.upsample_flow(covs1 - covs0, up_mask)
-            flow_predictions.append(flow_up)
-            covs.append(cov_up)
-        return flow_predictions, covs[-1]
+
+        cov_up = self.upsample_flow(covs1 - covs0, mask)
+        return flow_up, cov_up

@@ -51,20 +51,12 @@ def process_image(i, filelist, model, gt_flow):
     with torch.no_grad():
         flows, vars = model(img1, img2, {})
 
-    # flow = flows[0].permute(1, 2, 0).cpu().numpy()
-    # np.save(result_path + str(i).zfill(6) + '.npy', flow)
-    # flow_img = flow_viz.flow_to_image(vars)
-    #vars = upsample_flow(vars, mask)
     mse = (flows[0] - flow).abs().squeeze_(0).cpu()
     mse = torch.mean(mse, dim=0)
     vars_mean = vars.mean().cpu()
     mse_mean = mse.mean().cpu()
-    #img = vars_viz.flow_var_to_img(mse)
 
-    # cv2.imwrite(result_path + 'mse/' + str(i).zfill(6) + '.png', img)
     torch.cuda.empty_cache()
-    # image = Image.fromarray(flow_img)
-    # image.save(result_path + str(i).zfill(6) + '.png')
     print('Saved：{}/{}'.format(i + 1, length))
     return [vars_mean, mse_mean]
 

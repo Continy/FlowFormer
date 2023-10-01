@@ -14,7 +14,7 @@ _CN.add_noise = False
 _CN.critical_params = []
 
 _CN.transformer = 'latentcostformer'
-_CN.model = 'checkpoints/tartanair/flow_nets_mix_all.pth'
+_CN.model = 'checkpoints/gru/3000_mask.pth'
 _CN.weight = 'mixturegaussian'
 _CN.autosave_freq = 1500
 _CN.g_model = 'checkpoints/tartanair/flow_nets_mix_all.pth'
