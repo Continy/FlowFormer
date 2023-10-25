@@ -257,23 +257,33 @@ class TartanAir(FlowDataset):
             ]
             root = '/zihao/datasets/'
             for path in dirnames:
-                flow_length = len(
-                    glob(
-                        os.path.join(root, path, 'Data', 'P000', 'flow',
-                                     '*_flow.npy')))
-                print('find {} flow files in {}'.format(flow_length, root))
-                flows = sorted(
-                    glob(
-                        os.path.join(root, path, 'Data', 'P000', 'flow',
-                                     '*_flow.npy')))
-                #print(flows)
-                images = sorted(
-                    glob(
-                        os.path.join(root, path, 'Data', 'P000', 'image_left',
-                                     '*.png')))
-                for i in range(flow_length - 1):
-                    self.flow_list += [flows[i]]
-                    self.image_list += [[images[i], images[i + 1]]]
+                #检测文件夹下有多少个P00开头的文件夹
+                datalist = os.listdir(os.path.join(root, path, 'Data'))
+                pattern = re.compile(r'P00\d')
+                Plist = []
+                for i in datalist:
+                    if pattern.match(i):
+                        Plist.append(i)
+                #print(Plist)
+                for i in Plist:
+                    #print(os.path.join(root, path, 'Data', i, 'flow', '*.npy'))
+                    flow_length = len(
+                        glob(
+                            os.path.join(root, path, 'Data', i, 'flow',
+                                         '*_flow.npy')))
+                    print('find {} flow files in {}'.format(flow_length, root))
+                    flows = sorted(
+                        glob(
+                            os.path.join(root, path, 'Data', i, 'flow',
+                                         '*_flow.npy')))
+                    #print(flows)
+                    images = sorted(
+                        glob(
+                            os.path.join(root, path, 'Data', i, 'image_left',
+                                         '*.png')))
+                    for i in range(flow_length - 1):
+                        self.flow_list += [flows[i]]
+                        self.image_list += [[images[i], images[i + 1]]]
 
 
 def fetch_dataloader(args, TRAIN_DS='C+T+K+S+H'):
