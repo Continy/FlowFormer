@@ -252,9 +252,11 @@ class TartanAir(FlowDataset):
 
             dirnames = [
                 'abandonedfactory', 'hongkongalley', 'office', 'slaughter',
-                'hospital', 'soulcity', 'amusement', 'house', 'oldtown',
-                'westerndesert'
+                'hospital', 'soulcity'
             ]
+            # , 'amusement', 'house', 'oldtown',
+            #     'westerndesert'
+            # ]
             root = '/zihao/datasets/'
             for path in dirnames:
                 #检测文件夹下有多少个P00开头的文件夹
