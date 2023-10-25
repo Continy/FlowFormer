@@ -8,7 +8,7 @@
 #SBATCH -p a100-gpu-shared               # Partition you submit to
 #SBATCH --gres=gpu:2               # GPUs
 #SBATCH --mem=32G                   # Memory you need
-#SBATCH --job-name=Small FlowFormer Finetune      # Job name
+#SBATCH --job-name=SmallFlowFormerFinetune      # Job name
 #SBATCH -o job_%j.out
 #SBATCH -e job_%j.err
 #SBATCH --mail-type=ALL             # Type of notification BEGIN/FAIL/END/ALL
