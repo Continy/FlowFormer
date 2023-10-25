@@ -257,11 +257,11 @@ class TartanAir(FlowDataset):
             ]
             root = '/zihao/datasets/'
             for path in dirnames:
-                # flow_length = len(
-                #     glob(
-                #         os.path.join(root, path, 'Data', 'P000', 'flow',
-                #                      '*_flow.npy')))
-                #print('find {} flow files in {}'.format(flow_length, root))
+                flow_length = len(
+                    glob(
+                        os.path.join(root, path, 'Data', 'P000', 'flow',
+                                     '*_flow.npy')))
+                print('find {} flow files in {}'.format(flow_length, root))
                 flows = sorted(
                     glob(
                         os.path.join(root, path, 'Data', 'P000', 'flow',
