@@ -70,12 +70,16 @@ def train(cfg):
 
     model.cuda()
     model.train()
-
-    #freeze the FlowFormer
-    for param in model.parameters():
-        param.requires_grad = False
-    for param in model.module.memory_decoder.gaussian.parameters():
-        param.requires_grad = True
+    if cfg.training_mode == 'flow':
+        #freeze the Covariance Decoder
+        for param in model.module.memory_decoder.gaussian.parameters():
+            param.requires_grad = False
+    if cfg.training_mode == 'cov':
+        #freeze the FlowFormer
+        for param in model.parameters():
+            param.requires_grad = False
+        for param in model.module.memory_decoder.gaussian.parameters():
+            param.requires_grad = True
     train_loader = datasets.fetch_dataloader(cfg)
     optimizer, scheduler = fetch_optimizer(
         model.module.memory_decoder.gaussian, cfg.trainer)
@@ -131,7 +135,7 @@ def train(cfg):
         PATH = cfg.log_dir + '/final'
         torch.save(model.state_dict(), PATH)
 
-    PATH = f'checkpoints/gru/3000_mask.pth'
+    PATH = f'checkpoints/full_finetuned.pth'
     torch.save(model.state_dict(), PATH)
 
     return PATH
@@ -149,6 +153,9 @@ if __name__ == '__main__':
     parser.add_argument('--mixed_precision',
                         action='store_true',
                         help='use mixed precision')
+    parser.add_argument('--training_mode',
+                        default='cov',
+                        help='flow or covariance')
     parser.add_argument('--log', action='store_true', help='disable logging')
 
     args = parser.parse_args()

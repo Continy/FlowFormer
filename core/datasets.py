@@ -249,18 +249,28 @@ class TartanAir(FlowDataset):
                 self.flow_list += [flows[i]]
                 self.image_list += [[images[i], images[i + 1]]]
         else:
-            generate_string_list = lambda: [
-                f'P{i:03d}' for i in range(0, folderlength)
-            ]
 
-            for path in generate_string_list():
-                flow_length = len(
-                    glob(os.path.join(root, path, 'flow', '*_flow.npy')))
-                print('find {} flow files in {}'.format(flow_length, root))
-                flows = sorted(glob(os.path.join(root, path, 'flow', '*.npy')))
+            dirnames = [
+                'abandonedfactory', 'hongkongalley', 'office', 'slaughter',
+                'hospital', 'soulcity', 'amusement', 'house', 'oldtown',
+                'westerndesert'
+            ]
+            root = '/zihao/datasets/'
+            for path in dirnames:
+                # flow_length = len(
+                #     glob(
+                #         os.path.join(root, path, 'Data', 'P000', 'flow',
+                #                      '*_flow.npy')))
+                #print('find {} flow files in {}'.format(flow_length, root))
+                flows = sorted(
+                    glob(
+                        os.path.join(root, path, 'Data', 'P000', 'flow',
+                                     '*.npy')))
                 #print(flows)
                 images = sorted(
-                    glob(os.path.join(root, path, 'image_left', '*.png')))
+                    glob(
+                        os.path.join(root, path, 'Data', 'P000', 'image_left',
+                                     '*.png')))
                 for i in range(flow_length - 1):
                     self.flow_list += [flows[i]]
                     self.image_list += [[images[i], images[i + 1]]]

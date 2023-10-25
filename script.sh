@@ -1,0 +1,1 @@
+python -u train_gaussian.py --name tartanair --stage tartanair --validation tartanair --log --training_mode flow

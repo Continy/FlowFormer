@@ -52,7 +52,8 @@ def process_image(i, filelist, model, result_path):
     vars.squeeze_(0)
     vars = vars.detach()
     img = vars_viz.flow_var_to_img(vars)
-    cv2.imwrite(result_path + 'gru_mask/' + str(i).zfill(6) + '.png', img)
+    cv2.imwrite(result_path + 'gru_mseloss_P000/' + str(i).zfill(6) + '.png',
+                img)
     torch.cuda.empty_cache()
 
     print('Saved：{}/{}'.format(i + 1, length))
@@ -65,7 +66,8 @@ if __name__ == '__main__':
     parser.add_argument('--small', action='store_true', help='use small model')
     parser.add_argument('--datadir',
                         help='dataset dir',
-                        default='abandonedfactory/Easy/P001/image_left/')
+                        default='abandonedfactory/Easy/P000/image_left/')
+
     args = parser.parse_args()
     cfg = get_tartanair_cfg()
     method = cfg.mixturegaussian

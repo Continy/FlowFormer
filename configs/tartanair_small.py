@@ -15,14 +15,12 @@ _CN.critical_params = []
 _CN.folderlength = None
 _CN.transformer = 'latentcostformer'
 _CN.weight = 'mixturegaussian'
-_CN.autosave_freq = 1500
+_CN.autosave_freq = 5000
 _CN.restore_ckpt = 'checkpoints/final.pth'
 _CN.restore_ckpt_gaussian = None
 _CN.log = False
-#_CN.restore_ckpt_gaussian = 'checkpoints/flownets.pth'
 _CN.root = 'D:\\gits\\FlowFormer-Official\\datasets\\abandonedfactory\\Easy\\P001\\'
-#_CN.root = None
-#_CN.restore_ckpt = None
+
 # latentcostformer
 _CN.latentcostformer = CN()
 _CN.latentcostformer.pe = 'linear'
@@ -74,7 +72,7 @@ _CN.trainer.optimizer = 'adamw'
 _CN.trainer.canonical_lr = 12.5e-5
 _CN.trainer.adamw_decay = 1e-5
 _CN.trainer.clip = 1.0
-_CN.trainer.num_steps = 3000
+_CN.trainer.num_steps = 120000
 _CN.trainer.epsilon = 1e-8
 _CN.trainer.anneal_strategy = 'linear'
 

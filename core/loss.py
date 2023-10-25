@@ -32,8 +32,11 @@ def sequence_loss(flow_preds, flow_gt, valid, cfg, vars):
             vars_mean,
             dim=0).squeeze_(0).squeeze_(0).detach().cpu().numpy() * 255
         cv2.imwrite('vars.png', viz)
-
-    distribution_loss = mse_loss / (2 * torch.exp(2 * vars_mean)) + vars_mean
+    vars_mean = vars_mean.clamp(min=1e-6, max=20)
+    #distribution_loss = mse_loss / (2 * torch.exp(2 * vars_mean)) + vars_mean
+    distribution_loss = (mse_loss / vars_mean - 1)**2
+    #cut off pixels with large variance
+    distribution_loss = distribution_loss.clamp(max=1e2)
 
     metrics = {
         'vars': vars_mean.float().mean().item(),
