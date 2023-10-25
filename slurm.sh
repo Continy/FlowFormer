@@ -16,4 +16,4 @@
 # Executable
 EXE=/bin/bash
 
-singularity exec --bind /data2/datasets/wenshanw/tartan_data:/zihao/datasets:ro,/data2/datasets/yuhengq/zihao/FlowFormer:/zihao/FlowFormer /data2/datasets/yuhengq/zihao/flowformer.sif bash /zihao/FlowFormer/script.sh
+singularity exec --nv --bind /data2/datasets/wenshanw/tartan_data:/zihao/datasets:ro,/data2/datasets/yuhengq/zihao/FlowFormer:/zihao/FlowFormer /data2/datasets/yuhengq/zihao/flowformer.sif bash /zihao/FlowFormer/script.sh
