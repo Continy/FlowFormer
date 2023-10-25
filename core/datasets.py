@@ -265,7 +265,7 @@ class TartanAir(FlowDataset):
                 flows = sorted(
                     glob(
                         os.path.join(root, path, 'Data', 'P000', 'flow',
-                                     '*.npy')))
+                                     '*_flow.npy')))
                 #print(flows)
                 images = sorted(
                     glob(
