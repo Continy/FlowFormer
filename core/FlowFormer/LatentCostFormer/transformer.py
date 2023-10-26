@@ -23,12 +23,12 @@ class FlowFormer(nn.Module):
         super(FlowFormer, self).__init__()
         self.cfg = cfg['latentcostformer']
         self.mode = cfg.training_mode
-        self.memory_encoder = MemoryEncoder(cfg)
-        self.memory_decoder = MemoryDecoder(cfg)
-        if cfg.cnet == 'twins':
+        self.memory_encoder = MemoryEncoder(self.cfg)
+        self.memory_decoder = MemoryDecoder(self.cfg)
+        if self.cfg.cnet == 'twins':
             self.context_encoder = twins_svt_large(
                 pretrained=self.cfg.pretrain)
-        elif cfg.cnet == 'basicencoder':
+        elif self.cfg.cnet == 'basicencoder':
             self.context_encoder = BasicEncoder(output_dim=256,
                                                 norm_fn='instance')
 
