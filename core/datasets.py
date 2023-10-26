@@ -365,9 +365,9 @@ def fetch_dataloader(args, TRAIN_DS='C+T+K+S+H'):
 
     train_loader = data.DataLoader(train_dataset,
                                    batch_size=args.batch_size,
-                                   pin_memory=False,
+                                   pin_memory=True,
                                    shuffle=True,
-                                   num_workers=1,
+                                   num_workers=0,
                                    drop_last=True)
 
     print('Training with %d image pairs' % len(train_dataset))
