@@ -21,8 +21,8 @@ class FlowFormer(nn.Module):
 
     def __init__(self, cfg):
         super(FlowFormer, self).__init__()
-        self.cfg = cfg
-
+        self.cfg = cfg['latentcostformer']
+        self.mode = cfg.training_mode
         self.memory_encoder = MemoryEncoder(cfg)
         self.memory_decoder = MemoryDecoder(cfg)
         if cfg.cnet == 'twins':
@@ -46,11 +46,10 @@ class FlowFormer(nn.Module):
 
         cost_memory = self.memory_encoder(image1, image2, data, context)
 
-        flow_predictions, vars = self.memory_decoder(
-            cost_memory,
-            context,
-            data,
-            flow_init=flow_init,
-            mode=self.cfg.training_mode)
+        flow_predictions, vars = self.memory_decoder(cost_memory,
+                                                     context,
+                                                     data,
+                                                     flow_init=flow_init,
+                                                     mode=self.mode)
 
         return flow_predictions, vars

@@ -9,7 +9,7 @@ def build_flowformer(cfg):
     else:
         raise ValueError(f"FlowFormer = {name} is not a valid architecture!")
 
-    return FlowFormer(cfg[name])
+    return FlowFormer(cfg)
 
 
 def build_gaussian(cfg):
