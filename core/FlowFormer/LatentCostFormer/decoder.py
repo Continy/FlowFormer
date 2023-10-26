@@ -247,7 +247,12 @@ class MemoryDecoder(nn.Module):
         corr = corr.view(batch, h1, w1, -1).permute(0, 3, 1, 2)
         return corr
 
-    def forward(self, cost_memory, context, data={}, flow_init=None):
+    def forward(self,
+                cost_memory,
+                context,
+                data={},
+                flow_init=None,
+                mode='cov'):
         """
             memory: [B*H1*W1, H2'*W2', C]
             context: [B, D, H1, W1]
@@ -275,32 +280,64 @@ class MemoryDecoder(nn.Module):
 
         size = net.shape
         key, value = None, None
-        up_mask = None
-        coords1 = coords1.detach()
-        cost_forward = self.encode_flow_token(cost_maps, coords1)
+        if mode == 'cov':
+            up_mask = None
+            coords1 = coords1.detach()
+            cost_forward = self.encode_flow_token(cost_maps, coords1)
 
-        query = self.flow_token_encoder(cost_forward)
-        query = query.permute(0, 2, 3,
-                              1).contiguous().view(size[0] * size[2] * size[3],
-                                                   1, self.dim)
-        cost_global, key, value = self.decoder_layer(query, key, value,
-                                                     cost_memory, coords1,
-                                                     size, data['H3W3'])
+            query = self.flow_token_encoder(cost_forward)
+            query = query.permute(0, 2, 3, 1).contiguous().view(
+                size[0] * size[2] * size[3], 1, self.dim)
+            cost_global, key, value = self.decoder_layer(
+                query, key, value, cost_memory, coords1, size, data['H3W3'])
 
-        if self.cfg.only_global:
-            corr = cost_global
-        else:
-            corr = torch.cat([cost_global, cost_forward], dim=1)
+            if self.cfg.only_global:
+                corr = cost_global
+            else:
+                corr = torch.cat([cost_global, cost_forward], dim=1)
 
-        flow = coords1 - coords0
+            flow = coords1 - coords0
 
-        net, up_mask, delta_flow, inp_cat = self.update_block(
-            net, inp, corr, flow, attention)
-        coords1 = coords1 + delta_flow
-        flow_up = self.upsample_flow(coords1 - coords0, up_mask)
-        for idx in range(self.depth):
-            cov_net, delta_cov, mask = self.gaussian(cov_net, inp_cat)
-            covs1 = covs1 + delta_cov
+            net, up_mask, delta_flow, inp_cat = self.update_block(
+                net, inp, corr, flow, attention)
+            coords1 = coords1 + delta_flow
+            flow_up = self.upsample_flow(coords1 - coords0, up_mask)
+            for idx in range(self.depth):
+                cov_net, delta_cov, mask = self.gaussian(cov_net, inp_cat)
+                covs1 = covs1 + delta_cov
 
-        cov_up = self.upsample_flow(covs1 - covs0, mask)
-        return flow_up, cov_up
+            cov_up = self.upsample_flow(covs1 - covs0, mask)
+            return flow_up, cov_up
+
+        if mode == 'flow':
+            for idx in range(self.depth):
+                coords1 = coords1.detach()
+
+                cost_forward = self.encode_flow_token(cost_maps, coords1)
+                #cost_backward = self.reverse_cost_extractor(cost_maps, coords0, coords1)
+
+                query = self.flow_token_encoder(cost_forward)
+                query = query.permute(0, 2, 3, 1).contiguous().view(
+                    size[0] * size[2] * size[3], 1, self.dim)
+                cost_global, key, value = self.decoder_layer(
+                    query, key, value, cost_memory, coords1, size,
+                    data['H3W3'])
+                if self.cfg.only_global:
+                    corr = cost_global
+                else:
+                    corr = torch.cat([cost_global, cost_forward], dim=1)
+
+                flow = coords1 - coords0
+
+                if self.cfg.gma:
+                    net, up_mask, delta_flow, inp_cat = self.update_block(
+                        net, inp, corr, flow, attention)
+                else:
+                    net, up_mask, delta_flow = self.update_block(
+                        net, inp, corr, flow)
+
+                # flow = delta_flow
+                coords1 = coords1 + delta_flow
+                flow_up = self.upsample_flow(coords1 - coords0, up_mask)
+                flow_predictions.append(flow_up)
+                return flow_predictions, None

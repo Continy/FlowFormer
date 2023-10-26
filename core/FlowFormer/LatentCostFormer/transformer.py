@@ -46,9 +46,11 @@ class FlowFormer(nn.Module):
 
         cost_memory = self.memory_encoder(image1, image2, data, context)
 
-        flow_predictions, vars = self.memory_decoder(cost_memory,
-                                                     context,
-                                                     data,
-                                                     flow_init=flow_init)
+        flow_predictions, vars = self.memory_decoder(
+            cost_memory,
+            context,
+            data,
+            flow_init=flow_init,
+            mode=self.cfg.training_mode)
 
         return flow_predictions, vars
