@@ -42,11 +42,7 @@ def sequence_loss(flow_preds, flow_gt, valid, cfg, vars):
                 '3px': (epe < 3).float().mean().item(),
                 '5px': (epe < 5).float().mean().item(),
             }
-            flow_gt_length = torch.sum(flow_gt**2, dim=1).sqrt()
-            low_gt_length = flow_gt_length.view(-1)[valid.view(-1)]
-            for t in flow_gt_thresholds:
-                e = epe[flow_gt_length < t]
-                metrics.update({f"{t}-th-5px": (e < 5).float().mean().item()})
+
         return mse_loss.mean(), metrics
     if cfg.training_mode == 'cov':
         i_loss = (flow_preds - flow_gt).abs()
