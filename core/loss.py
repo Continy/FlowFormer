@@ -37,6 +37,7 @@ def sequence_loss(flow_preds, flow_gt, valid, cfg, vars):
             epe = torch.sum((flow_preds[-1] - flow_gt)**2, dim=1).sqrt()
             epe = epe.view(-1)[valid.view(-1)]
             metrics = {
+                'loss': mse_loss.mean().item(),
                 'epe': epe.mean().item(),
                 '1px': (epe < 1).float().mean().item(),
                 '3px': (epe < 3).float().mean().item(),
