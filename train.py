@@ -102,8 +102,7 @@ def train(cfg):
         for param in model.module.memory_decoder.gaussian.parameters():
             param.requires_grad = True
     train_loader = datasets.fetch_dataloader(cfg)
-    optimizer, scheduler = fetch_optimizer(
-        model.module.memory_decoder.gaussian, cfg.trainer)
+    optimizer, scheduler = fetch_optimizer(model, cfg.trainer)
     total_steps = 0
     scaler = GradScaler(enabled=cfg.mixed_precision)
     if cfg.log:
