@@ -95,14 +95,17 @@ def train(cfg):
         #freeze the Covariance Decoder
         for param in model.module.memory_decoder.gaussian.parameters():
             param.requires_grad = False
+        optimizer, scheduler = fetch_optimizer(model, cfg.trainer)
     if cfg.training_mode == 'cov':
         #freeze the FlowFormer
         for param in model.parameters():
             param.requires_grad = False
         for param in model.module.memory_decoder.gaussian.parameters():
             param.requires_grad = True
+        optimizer, scheduler = fetch_optimizer(
+            model.module.memory_decoder.gaussian, cfg.trainer)
     train_loader = datasets.fetch_dataloader(cfg)
-    optimizer, scheduler = fetch_optimizer(model, cfg.trainer)
+
     total_steps = 0
     scaler = GradScaler(enabled=cfg.mixed_precision)
     if cfg.log:

@@ -72,7 +72,7 @@ _CN.trainer.optimizer = 'adamw'
 _CN.trainer.canonical_lr = 12.5e-5
 _CN.trainer.adamw_decay = 1e-5
 _CN.trainer.clip = 1.0
-_CN.trainer.num_steps = 120000
+_CN.trainer.num_steps = 65000
 _CN.trainer.epsilon = 1e-8
 _CN.trainer.anneal_strategy = 'linear'
 

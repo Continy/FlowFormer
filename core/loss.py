@@ -46,7 +46,7 @@ def sequence_loss(flow_preds, flow_gt, valid, cfg, vars):
 
         return mse_loss.mean(), metrics
     if cfg.training_mode == 'cov':
-        i_loss = (flow_preds - flow_gt).abs()
+        i_loss = (flow_preds - flow_gt)**2
         mse_loss += (valid[:, None] * i_loss)
         vars_mean = torch.mean(vars, dim=1)
         mse_loss = torch.mean(mse_loss, dim=1)

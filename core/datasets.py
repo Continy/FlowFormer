@@ -250,13 +250,11 @@ class TartanAir(FlowDataset):
                 self.image_list += [[images[i], images[i + 1]]]
         else:
 
-            dirnames = [
-                'abandonedfactory', 'hongkongalley', 'office', 'slaughter',
-                'hospital', 'soulcity'
-            ]
-            # , 'amusement', 'house', 'oldtown',
-            #     'westerndesert'
+            # dirnames = [
+            #     'abandonedfactory', 'hongkongalley', 'office', 'slaughter',
+            #     'hospital', 'soulcity'
             # ]
+            dirnames = ['amusement', 'house', 'oldtown', 'westerndesert']
             root = '/zihao/datasets/'
             for path in dirnames:
                 #检测文件夹下有多少个P00开头的文件夹
@@ -351,8 +349,8 @@ def fetch_dataloader(args, TRAIN_DS='C+T+K+S+H'):
     elif args.stage == 'tartanair':
         aug_params = {
             'crop_size': args.image_size,
-            'min_scale': -0.2,
-            'max_scale': 0.5,
+            'min_scale': -0.1,
+            'max_scale': 0.3,
             'do_flip': False
         }
         if args.root != None:

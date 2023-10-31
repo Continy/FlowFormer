@@ -62,6 +62,7 @@ def process_image(i, filelist, model, gt_flow, args):
         vars = torch.mean(vars, dim=1).cpu()
         vars.squeeze_(0)
         vars = vars.detach()
+        vars = torch.sqrt(vars)
         img = vars_viz.heatmap(vars)
         cv2.imwrite(result_path + str(i).zfill(6) + '.png', img)
     if args.error:
@@ -69,6 +70,7 @@ def process_image(i, filelist, model, gt_flow, args):
         vars = torch.mean(vars, dim=1).cpu()
         vars.squeeze_(0)
         vars = vars.detach()
+        vars = torch.sqrt(vars)
         error = (mse / vars - 1)**2
         img = vars_viz.colorbar(error)
         plt.colorbar(img)
@@ -86,8 +88,7 @@ def process_image(i, filelist, model, gt_flow, args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', help='Load model')
-    parser.add_argument('--eval', help='Eval benchmark')
+
     parser.add_argument('--small',
                         action='store_true',
                         help='Using small model')
@@ -108,9 +109,12 @@ if __name__ == '__main__':
                         help='visualize covariance',
                         action='store_true')
     parser.add_argument('--mse', help='visualize mse', action='store_true')
+    parser.add_argument('--training_mode',
+                        default='cov',
+                        help='flow or covariance')
     args = parser.parse_args()
     cfg = get_tartanair_cfg()
-
+    cfg.update(vars(args))
     #print(cfg)
     result_path = args.savepath
 
