@@ -20,7 +20,7 @@ _CN.restore_ckpt = 'checkpoints/95001_tartanair.pth'
 _CN.restore_ckpt_gaussian = None
 _CN.log = False
 _CN.root = 'D:\\gits\\FlowFormer-Official\\datasets\\abandonedfactory\\Easy\\P001\\'
-
+_CN.training_viz = False
 # latentcostformer
 _CN.latentcostformer = CN()
 _CN.latentcostformer.pe = 'linear'
@@ -59,12 +59,7 @@ _CN.latentcostformer.critical_params = [
     'cost_heads_num', 'vert_c_dim', 'cnet', 'pretrain', 'add_flow_token',
     'encoder_depth', 'gma', 'cost_encoder_res'
 ]
-#weight
-_CN.mixturegaussian = CN()
-_CN.mixturegaussian.mixture_num = 3
-#_CN.mixturegaussian.method = 'U-net'
-_CN.mixturegaussian.method = 'FlowNetS'
-_CN.mixturegaussian.training_viz = False
+
 ### TRAINER
 _CN.trainer = CN()
 _CN.trainer.scheduler = 'OneCycleLR'

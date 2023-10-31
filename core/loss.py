@@ -12,7 +12,6 @@ def sequence_loss(flow_preds, flow_gt, valid, cfg, vars):
 
     gamma = cfg.gamma
     max_flow = cfg.max_flow
-    method = cfg.mixturegaussian
     n_predictions = len(flow_preds)
     flow_gt_thresholds = [5, 10, 20]
 
@@ -23,7 +22,7 @@ def sequence_loss(flow_preds, flow_gt, valid, cfg, vars):
     mag = torch.sum(flow_gt**2, dim=1).sqrt()
     valid = (valid >= 0.5) & (mag < max_flow)
 
-    if method.training_viz:
+    if cfg.training_viz:
         viz = torch.mean(
             vars_mean,
             dim=0).squeeze_(0).squeeze_(0).detach().cpu().numpy() * 255

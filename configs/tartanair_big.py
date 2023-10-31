@@ -6,7 +6,7 @@ _CN.name = 'tartanair'
 _CN.suffix = 'tartanair'
 _CN.gamma = 0.85
 _CN.max_flow = 400
-_CN.batch_size = 6
+_CN.batch_size = 16
 _CN.sum_freq = 100
 _CN.val_freq = 5000000
 _CN.autosave_freq = 1500
@@ -16,9 +16,11 @@ _CN.critical_params = []
 _CN.folderlength = 1
 _CN.transformer = 'latentcostformer'
 _CN.weight = 'mixturegaussian'
+_CN.autosave_freq = 5000
+_CN.log = False
 _CN.restore_ckpt = 'checkpoints/things.pth'
 _CN.root = '/project/learningvo/tartanair_v1_5/abandonedfactory/Data/'
-
+_CN.training_viz = False
 # latentcostformer
 _CN.latentcostformer = CN()
 _CN.latentcostformer.pe = 'linear'
@@ -50,18 +52,14 @@ _CN.latentcostformer.only_global = False
 _CN.latentcostformer.add_flow_token = True
 _CN.latentcostformer.use_mlp = False
 _CN.latentcostformer.vertical_conv = False
-
+_CN.latentcostformer.mixtures = 3
 # decoder
 _CN.latentcostformer.decoder_depth = 12
 _CN.latentcostformer.critical_params = [
     'cost_heads_num', 'vert_c_dim', 'cnet', 'pretrain', 'add_flow_token',
     'encoder_depth', 'gma', 'cost_encoder_res'
 ]
-#weight
-_CN.mixturegaussian = CN()
-_CN.mixturegaussian.hidden_size = 256
-_CN.mixturegaussian.mixture_num = 1
-_CN.mixturegaussian.para_num = 1
+
 ### TRAINER
 _CN.trainer = CN()
 _CN.trainer.scheduler = 'OneCycleLR'

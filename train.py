@@ -28,7 +28,7 @@ from loguru import logger as loguru_logger
 from core.utils.logger import Logger
 
 # from core.FlowFormer import FlowFormer
-from core.FlowFormer import build_flowformer, build_gaussian
+from core.FlowFormer import build_flowformer
 
 try:
     from torch.cuda.amp import GradScaler
@@ -180,6 +180,7 @@ if __name__ == '__main__':
                         default='cov',
                         help='flow or covariance')
     parser.add_argument('--log', action='store_true', help='disable logging')
+    parser.add_argument('--big', action='store_true', help='use big model')
 
     args = parser.parse_args()
 
@@ -191,9 +192,10 @@ if __name__ == '__main__':
         from configs.sintel import get_cfg
     elif args.stage == 'kitti':
         from configs.kitti import get_cfg
-    elif args.stage == 'tartanair':
+    elif args.stage == 'tartanair' and not args.big:
         from configs.tartanair_small import get_cfg
-
+    elif args.stage == 'tartanair' and args.big:
+        from configs.tartanair_big import get_cfg
     cfg = get_cfg()
     cfg.update(vars(args))
     if args.log:
