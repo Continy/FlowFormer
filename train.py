@@ -142,7 +142,8 @@ def train(cfg):
             if cfg.log:
                 metrics.update(output)
                 logger.push(metrics)
-            print("Iter: %d, Loss: %.4f" % (total_steps, loss.item()))
+            if total_steps % 5 == 0:
+                print("Iter: %d, Loss: %.4f" % (total_steps, loss.item()))
 
             total_steps += 1
 

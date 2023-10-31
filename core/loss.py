@@ -1,10 +1,6 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.distributions import MultivariateNormal, MixtureSameFamily
 import sys
 import cv2
-import numpy as np
 
 
 def sequence_loss(flow_preds, flow_gt, valid, cfg, vars):

@@ -257,21 +257,20 @@ class TartanAir(FlowDataset):
             dirnames = ['amusement', 'house', 'oldtown', 'westerndesert']
             root = '/zihao/datasets/'
             for path in dirnames:
-                #检测文件夹下有多少个P00开头的文件夹
                 datalist = os.listdir(os.path.join(root, path, 'Data'))
                 pattern = re.compile(r'P00\d')
                 Plist = []
                 for i in datalist:
                     if pattern.match(i):
                         Plist.append(i)
-                #print(Plist)
                 for i in Plist:
-                    #print(os.path.join(root, path, 'Data', i, 'flow', '*.npy'))
                     flow_length = len(
                         glob(
                             os.path.join(root, path, 'Data', i, 'flow',
                                          '*_flow.npy')))
-                    print('find {} flow files in {}'.format(flow_length, root))
+                    print('find {} flow files in {}'.format(
+                        flow_length, os.path.join(root, path, 'Data', i,
+                                                  'flow')))
                     flows = sorted(
                         glob(
                             os.path.join(root, path, 'Data', i, 'flow',

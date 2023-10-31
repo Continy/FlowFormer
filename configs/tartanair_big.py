@@ -15,7 +15,7 @@ _CN.add_noise = True
 _CN.critical_params = []
 _CN.folderlength = 1
 _CN.transformer = 'latentcostformer'
-_CN.weight = 'mixturegaussian'
+
 _CN.autosave_freq = 5000
 _CN.log = False
 _CN.restore_ckpt = 'checkpoints/things.pth'
