@@ -24,8 +24,8 @@ import datasets
 from core.utils import vars_viz
 
 from core.FlowFormer import build_flowformer
-from core.FlowFormer import build_gaussian
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from utils import flow_viz
 
 import imageio
 import itertools
@@ -55,15 +55,23 @@ def process_image(i, filelist, model, gt_flow, args):
 
     mse = (flows[0] - flow).abs().squeeze_(0).cpu()
     mse = torch.mean(mse, dim=0)
+    if args.flow:
+        img = flow_viz.flow_to_image(flows[0].permute(1, 2, 0).cpu().numpy())
+        image = Image.fromarray(img)
+        print('{}/{}'.format(i + 1, length))
+        image.save(result_path + str(i).zfill(6) + '.png')
     if args.mse:
         img = vars_viz.heatmap(mse)
         cv2.imwrite(result_path + str(i).zfill(6) + '.png', img)
+        print('{}/{}'.format(i + 1, length))
+        return mse.mean()
     if args.cov:
         vars = torch.mean(vars, dim=1).cpu()
         vars.squeeze_(0)
         vars = vars.detach()
         vars = torch.sqrt(vars)
         img = vars_viz.heatmap(vars)
+        print('{}/{}'.format(i + 1, length))
         cv2.imwrite(result_path + str(i).zfill(6) + '.png', img)
     if args.error:
 
@@ -78,12 +86,7 @@ def process_image(i, filelist, model, gt_flow, args):
         plt.clf()
         print('{}/{}'.format(i + 1, length))
         return error.mean()
-    vars_mean = vars.mean().cpu()
-    mse_mean = mse.mean().cpu()
-
-    torch.cuda.empty_cache()
-    print('{}/{}'.format(i + 1, length))
-    return [vars_mean, mse_mean]
+    return 0
 
 
 if __name__ == '__main__':
@@ -101,7 +104,8 @@ if __name__ == '__main__':
         default='datasets/abandonedfactory/Easy/P000/image_left/')
     parser.add_argument('--savepath',
                         help='store the results',
-                        default='results/tartanair/small/things/P000_error/')
+                        default='results/tartanair/small/finetuned/P000/flow/')
+    parser.add_argument('--flow', help='visualize flow', action='store_true')
     parser.add_argument('--error',
                         help='visualize error, (mse/vars-1)^2',
                         action='store_true')
@@ -109,33 +113,33 @@ if __name__ == '__main__':
                         help='visualize covariance',
                         action='store_true')
     parser.add_argument('--mse', help='visualize mse', action='store_true')
+
     parser.add_argument('--training_mode',
                         default='cov',
                         help='flow or covariance')
     args = parser.parse_args()
     cfg = get_tartanair_cfg()
     cfg.update(vars(args))
-    #print(cfg)
     result_path = args.savepath
 
     img_path = args.imgdir
     gt_flow = args.gtflowdir
     pattern1 = os.path.join(img_path, '*.png')
     pattern2 = os.path.join(gt_flow, '*.npy')
-    filelist1 = glob.glob(pattern1)
-    filelist2 = glob.glob(pattern2)
+    filelist1 = sorted(glob.glob(pattern1))
+    filelist2 = sorted(glob.glob(pattern2))
     length = len(filelist1)
     print('Find {} pairs'.format(length))
 
     model = torch.nn.DataParallel(build_flowformer(cfg))
-    model.load_state_dict(torch.load(cfg.model), strict=True)
+    model.load_state_dict(torch.load(cfg.model), strict=False)
     model.cuda()
     model.eval()
 
     results = []
     for i in range(length - 1):
         result = process_image(i, filelist1, model, filelist2, args)
-        if args.error:
+        if args.error or args.mse:
             results.append(result)
     if args.error:
         results = np.array(results)
@@ -144,3 +148,10 @@ if __name__ == '__main__':
         plt.plot([mean] * length, label='mean')
         plt.legend()
         plt.savefig(result_path + 'error.png')
+    if args.mse:
+        results = np.array(results)
+        mean = results.mean(axis=0)
+        plt.plot(results, label='mse')
+        plt.plot([mean] * length, label='mean')
+        plt.legend()
+        plt.savefig(result_path + 'mse.png')

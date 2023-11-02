@@ -14,7 +14,7 @@ _CN.add_noise = False
 _CN.critical_params = []
 
 _CN.transformer = 'latentcostformer'
-_CN.model = 'checkpoints/gru/mseloss.pth'
+_CN.model = 'checkpoints/95001_tartanair.pth'
 _CN.autosave_freq = 1500
 # latentcostformer
 _CN.latentcostformer = CN()

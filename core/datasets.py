@@ -250,11 +250,11 @@ class TartanAir(FlowDataset):
                 self.image_list += [[images[i], images[i + 1]]]
         else:
 
-            # dirnames = [
-            #     'abandonedfactory', 'hongkongalley', 'office', 'slaughter',
-            #     'hospital', 'soulcity'
-            # ]
-            dirnames = ['amusement', 'house', 'oldtown', 'westerndesert']
+            dirnames = [
+                'abandonedfactory', 'hongkongalley', 'office', 'slaughter',
+                'hospital', 'soulcity', 'amusement', 'house', 'oldtown',
+                'westerndesert'
+            ]
             root = '/zihao/datasets/'
             for path in dirnames:
                 datalist = os.listdir(os.path.join(root, path, 'Data'))
