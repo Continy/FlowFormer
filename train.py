@@ -159,7 +159,7 @@ def train(cfg):
         PATH = cfg.log_dir + '/final'
         torch.save(model.state_dict(), PATH)
 
-    PATH = f'checkpoints/big.pth'
+    PATH = f'checkpoints/big_full.pth'
     torch.save(model.state_dict(), PATH)
 
     return PATH

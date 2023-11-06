@@ -18,7 +18,7 @@ _CN.transformer = 'latentcostformer'
 
 _CN.autosave_freq = 5000
 _CN.log = False
-_CN.restore_ckpt = 'checkpoints/things.pth'
+_CN.restore_ckpt = 'checkpoints/big.pth'
 _CN.root = '/project/learningvo/tartanair_v1_5/abandonedfactory/Data/'
 _CN.training_viz = False
 # latentcostformer
