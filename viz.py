@@ -35,7 +35,8 @@ import matplotlib.pyplot as plt
 TRAIN_SIZE = [432, 960]
 KITTI_SIZE = [370, 1226]
 TARTANAIR_SIZE = [480, 640]
-
+def error(mse,vars):
+    return np.mean((mse - vars)**2)
 
 def process_image(i, filelist, model, gt_flow, args):
     img1 = np.array(Image.open(filelist[i])).astype(np.uint8)
@@ -53,7 +54,7 @@ def process_image(i, filelist, model, gt_flow, args):
     with torch.no_grad():
         flows, vars = model(img1, img2, {})
 
-    mse = (flows[0] - flow).abs().squeeze_(0).cpu()
+    mse = torch.pow((flows[0] - flow),2).squeeze_(0).cpu()
     mse = torch.mean(mse, dim=0)
     if args.flow:
         img = flow_viz.flow_to_image(flows[0].permute(1, 2, 0).cpu().numpy())
@@ -61,6 +62,7 @@ def process_image(i, filelist, model, gt_flow, args):
         print('{}/{}'.format(i + 1, length))
         image.save(result_path + str(i).zfill(6) + '.png')
     if args.mse:
+        mse = torch.sqrt(mse)
         img = vars_viz.heatmap(mse)
         cv2.imwrite(result_path + str(i).zfill(6) + '.png', img)
         print('{}/{}'.format(i + 1, length))
@@ -74,18 +76,12 @@ def process_image(i, filelist, model, gt_flow, args):
         print('{}/{}'.format(i + 1, length))
         cv2.imwrite(result_path + str(i).zfill(6) + '.png', img)
     if args.error:
-
-        vars = torch.mean(vars, dim=1).cpu()
-        vars.squeeze_(0)
-        vars = vars.detach()
-        vars = torch.sqrt(vars)
-        error = (mse / vars - 1)**2
-        img = vars_viz.colorbar(error)
-        plt.colorbar(img)
-        plt.savefig(result_path + str(i).zfill(6) + '.png')
-        plt.clf()
+        vars = torch.mean(vars, dim=1).cpu().squeeze_(0).detach()
+        vars = torch.mean(vars)
+        mse = torch.mean(mse)
         print('{}/{}'.format(i + 1, length))
-        return error.mean()
+        print('mse:{}'.format(mse))
+        return vars,mse
     return 0
 
 
@@ -104,7 +100,7 @@ if __name__ == '__main__':
         default='datasets/abandonedfactory/Easy/P000/image_left/')
     parser.add_argument('--savepath',
                         help='store the results',
-                        default='results/tartanair/small/finetuned/P000/flow/')
+                        default='results/tartanair/small/finetuned/')
     parser.add_argument('--flow', help='visualize flow', action='store_true')
     parser.add_argument('--error',
                         help='visualize error, (mse/vars-1)^2',
@@ -135,19 +131,12 @@ if __name__ == '__main__':
     model.load_state_dict(torch.load(cfg.model), strict=False)
     model.cuda()
     model.eval()
-
     results = []
     for i in range(length - 1):
         result = process_image(i, filelist1, model, filelist2, args)
         if args.error or args.mse:
             results.append(result)
-    if args.error:
-        results = np.array(results)
-        mean = results.mean(axis=0)
-        plt.plot(results, label='vars')
-        plt.plot([mean] * length, label='mean')
-        plt.legend()
-        plt.savefig(result_path + 'error.png')
+    
     if args.mse:
         results = np.array(results)
         mean = results.mean(axis=0)
@@ -155,3 +144,33 @@ if __name__ == '__main__':
         plt.plot([mean] * length, label='mean')
         plt.legend()
         plt.savefig(result_path + 'mse.png')
+    if args.error:
+        results = np.array(results)
+        vars = results[:,0]
+        mse = results[:,1]
+        #calculate the variance of mse
+        mean = mse.mean()
+        simple_variance = np.mean((mse - mean)**2)
+        #turn shape of simple_variance to shape of mse
+        simple_variance = np.array([simple_variance]*(length-1))
+        simple_error=[]
+        vars_error=[]
+        
+        for i in range(length-1):
+            # simple_error.append(error(mse[:i+1],simple_variance[:i+1]))
+            # vars_error.append(error(mse[:i+1],vars[:i+1]))
+            simple_error.append(vars[i])
+            vars_error.append(np.log(mse[i]))
+        np.save(result_path+'vars.npy',simple_error)
+        plt.plot(simple_error,label='simple')
+        plt.plot(vars_error,label='vars')
+        plt.plot([mean]*length,label='mean')
+        plt.plot([np.log(mean)]*length,label='log_mean')
+        plt.legend()
+        plt.savefig(result_path + 'error.png')
+        
+        
+        
+        
+        
+        

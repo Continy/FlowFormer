@@ -15,7 +15,7 @@ _CN.critical_params = []
 _CN.folderlength = 1
 _CN.transformer = 'latentcostformer'
 _CN.autosave_freq = 5000
-_CN.restore_ckpt = 'checkpoints/final.pth'
+_CN.restore_ckpt = 'checkpoints/full_finetuned.pth'
 _CN.log = False
 _CN.root = 'D:\\gits\\FlowFormer-Official\\datasets\\abandonedfactory\\Easy\\P001\\'
 _CN.training_viz = False
@@ -65,7 +65,7 @@ _CN.trainer.optimizer = 'adamw'
 _CN.trainer.canonical_lr = 12.5e-5
 _CN.trainer.adamw_decay = 1e-5
 _CN.trainer.clip = 1.0
-_CN.trainer.num_steps = 65000
+_CN.trainer.num_steps = 120000
 _CN.trainer.epsilon = 1e-8
 _CN.trainer.anneal_strategy = 'linear'
 
