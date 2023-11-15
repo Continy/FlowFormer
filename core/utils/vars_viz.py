@@ -5,6 +5,21 @@ import numpy as np
 import cv2
 
 
+def read_flo_file(file_path):
+    with open(file_path, 'rb') as f:
+        magic = np.fromfile(f, np.float32, count=1)
+        if 202021.25 != magic:
+            print('Magic number incorrect. Invalid .flo file')
+            return None
+        else:
+            w = np.fromfile(f, np.int32, count=1)[0]
+            h = np.fromfile(f, np.int32, count=1)[0]
+            data = np.fromfile(f, np.float32, count=2 * w * h)
+            # Reshape data into 3D array (columns, rows, bands)
+            data2D = np.resize(data, (h, w, 2))
+            return data2D
+
+
 def heatmap(data):
 
     #(1,H,W)-->(3,H,W)

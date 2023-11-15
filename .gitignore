@@ -12,3 +12,4 @@ results
 compare
 *.png
 *.npy
+.vscode
